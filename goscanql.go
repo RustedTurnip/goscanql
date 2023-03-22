@@ -12,33 +12,106 @@ const (
 )
 
 func evaluateStruct(obj interface{}) (map[string]interface{}, error) {
+	expectedFields := make(map[string]interface{})
+
+	err := evaluateNestedStruct("", obj, expectedFields)
+	if err != nil {
+		return nil, err
+	}
+
+	return expectedFields, nil
+}
+
+func evaluateNestedStruct(prefix string, obj interface{}, fields map[string]interface{}) error {
 
 	rv := reflect.ValueOf(obj)
 
 	// if not pointer error as cannot affect the original obj
 	if rv.Kind() != reflect.Pointer {
-		return nil, errors.New("provided obj must be a pointer")
+		return errors.New("provided obj must be a pointer")
+	}
+
+	// if type is slice, add 1 element to it to store values
+	// TODO walk through pointers until a value is found to write to
+	// TODO (see: https://stackoverflow.com/questions/35604356/json-unmarshal-accepts-a-pointer-to-a-pointer)
+	if rv.Elem().Kind() == reflect.Slice {
+
+		// get slice type, e.g. []*Example has a slice type of *Example
+		sliceType := reflect.TypeOf(rv.Elem().Interface()).Elem()
+
+		// create new element of sliceType
+		element := reflect.New(sliceType).Elem()
+
+		// if underlying type is a pointer, instantiate
+		if element.Kind() == reflect.Pointer {
+			element.Set(reflect.New(sliceType.Elem()))
+		}
+
+		// append new element to slice
+		rv.Elem().Set(reflect.Append(rv.Elem(), element))
+
+		// if element is pointer, pass it through directly
+		if element.Kind() == reflect.Pointer {
+			return evaluateNestedStruct(prefix, rv.Elem().Index(0).Interface(), fields)
+		}
+		// else create pointer to it to pass through
+		return evaluateNestedStruct(prefix, rv.Elem().Index(0).Addr().Interface(), fields)
 	}
 
 	// unwrap pointer
 	rv = rv.Elem()
 	t := rv.Type()
 
-	expectedFields := make(map[string]interface{})
+	// TODO check if struct, if so call evaluateNestedStruct
 
 	// extract expected fields
 	for i := 0; i < t.NumField(); i++ {
 
-		field, ok := t.Field(i).Tag.Lookup(scanqlTag)
+		fieldName, ok := t.Field(i).Tag.Lookup(scanqlTag)
 		if !ok {
 			// skip if field doesn't have scanql tag
 			continue
 		}
 
-		expectedFields[field] = rv.Field(i).Addr().Interface()
+		// if nested struct or slice
+		if rv.Field(i).Kind() == reflect.Struct || rv.Field(i).Kind() == reflect.Slice {
+
+			// set current field to new instance of field type
+			rv.Field(i).Set(reflect.New(rv.Field(i).Type()).Elem())
+
+			// evaluate with pointer to new instance
+			err := evaluateNestedStruct(fmt.Sprintf("%s_", fieldName), rv.Field(i).Addr().Interface(), fields)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		// add field to map
+		fmt.Println(rv.Field(i).Addr().Pointer())
+		fields[fmt.Sprintf("%s%s", prefix, fieldName)] = rv.Field(i).Addr().Interface()
 	}
 
-	return expectedFields, nil
+	return nil
+}
+
+func walkInstantiatePointers(value reflect.Value) reflect.Value {
+
+	if value.Kind() == reflect.Pointer {
+		return walkInstantiatePointers(value.Elem()).Addr()
+	}
+
+	return reflect.New(value.Type())
+}
+
+func walkPointers(value reflect.Value) reflect.Value {
+
+	if value.Kind() == reflect.Pointer {
+		return walkPointers(value.Elem())
+	}
+
+	return value
 }
 
 func mapFieldsToColumns(cols []string, fields map[string]interface{}) []interface{} {

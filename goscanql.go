@@ -62,25 +62,39 @@ func evaluateNestedStruct(prefix string, obj interface{}, fields map[string]inte
 	rv = rv.Elem()
 	t := rv.Type()
 
-	// TODO check if struct, if so call evaluateNestedStruct
-
 	// extract expected fields
 	for i := 0; i < t.NumField(); i++ {
 
-		fieldName, ok := t.Field(i).Tag.Lookup(scanqlTag)
+		fieldType := t.Field(i)
+		fieldValue := rv.Field(i)
+
+		fieldName, ok := fieldType.Tag.Lookup(scanqlTag)
 		if !ok {
 			// skip if field doesn't have scanql tag
 			continue
 		}
 
-		// if nested struct or slice
-		if rv.Field(i).Kind() == reflect.Struct || rv.Field(i).Kind() == reflect.Slice {
-
-			// set current field to new instance of field type
-			rv.Field(i).Set(reflect.New(rv.Field(i).Type()).Elem())
+		// if pointer
+		if fieldValue.Kind() == reflect.Pointer {
+			rv.Field(i).Set(reflect.New(fieldType.Type.Elem()))
 
 			// evaluate with pointer to new instance
-			err := evaluateNestedStruct(fmt.Sprintf("%s_", fieldName), rv.Field(i).Addr().Interface(), fields)
+			err := evaluateNestedStruct(fmt.Sprintf("%s_", fieldName), rv.Field(i).Interface(), fields)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		// if nested struct or slice
+		if fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Slice {
+
+			// set current field to new instance of field type
+			rv.Field(i).Set(reflect.New(fieldValue.Type()).Elem())
+
+			// evaluate with pointer to new instance
+			err := evaluateNestedStruct(fmt.Sprintf("%s_", fieldName), fieldValue.Addr().Interface(), fields)
 			if err != nil {
 				return err
 			}
@@ -89,7 +103,7 @@ func evaluateNestedStruct(prefix string, obj interface{}, fields map[string]inte
 		}
 
 		// add field to map
-		fmt.Println(rv.Field(i).Addr().Pointer())
+		fmt.Println(fieldValue.Addr().Pointer())
 		fields[fmt.Sprintf("%s%s", prefix, fieldName)] = rv.Field(i).Addr().Interface()
 	}
 

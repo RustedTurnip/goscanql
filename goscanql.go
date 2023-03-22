@@ -110,24 +110,6 @@ func evaluateNestedStruct(prefix string, obj interface{}, fields map[string]inte
 	return nil
 }
 
-func walkInstantiatePointers(value reflect.Value) reflect.Value {
-
-	if value.Kind() == reflect.Pointer {
-		return walkInstantiatePointers(value.Elem()).Addr()
-	}
-
-	return reflect.New(value.Type())
-}
-
-func walkPointers(value reflect.Value) reflect.Value {
-
-	if value.Kind() == reflect.Pointer {
-		return walkPointers(value.Elem())
-	}
-
-	return value
-}
-
 func mapFieldsToColumns(cols []string, fields map[string]interface{}) []interface{} {
 
 	values := make([]interface{}, len(cols))

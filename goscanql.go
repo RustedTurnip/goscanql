@@ -11,10 +11,11 @@ const (
 	scanqlTag = "goscanql"
 )
 
-func evaluateStruct(obj interface{}) (map[string]interface{}, error) {
-	expectedFields := make(map[string]interface{})
+func evaluate(obj interface{}) (*fields, error) {
 
-	err := evaluateNestedStruct("", obj, expectedFields)
+	expectedFields := newFields()
+
+	err := evaluateStruct(obj, expectedFields)
 	if err != nil {
 		return nil, err
 	}
@@ -22,7 +23,7 @@ func evaluateStruct(obj interface{}) (map[string]interface{}, error) {
 	return expectedFields, nil
 }
 
-func evaluateNestedStruct(prefix string, obj interface{}, fields map[string]interface{}) error {
+func evaluateStruct(obj interface{}, fields *fields) error {
 
 	rv := reflect.ValueOf(obj)
 
@@ -52,10 +53,10 @@ func evaluateNestedStruct(prefix string, obj interface{}, fields map[string]inte
 
 		// if element is pointer, pass it through directly
 		if element.Kind() == reflect.Pointer {
-			return evaluateNestedStruct(prefix, rv.Elem().Index(0).Interface(), fields)
+			return evaluateStruct(rv.Elem().Index(0).Interface(), fields)
 		}
 		// else create pointer to it to pass through
-		return evaluateNestedStruct(prefix, rv.Elem().Index(0).Addr().Interface(), fields)
+		return evaluateStruct(rv.Elem().Index(0).Addr().Interface(), fields)
 	}
 
 	// unwrap pointer
@@ -79,7 +80,7 @@ func evaluateNestedStruct(prefix string, obj interface{}, fields map[string]inte
 			rv.Field(i).Set(reflect.New(fieldType.Type.Elem()))
 
 			// evaluate with pointer to new instance
-			err := evaluateNestedStruct(fmt.Sprintf("%s_", fieldName), rv.Field(i).Interface(), fields)
+			err := evaluateStruct(rv.Field(i).Interface(), fields.addChild(fieldName))
 			if err != nil {
 				return err
 			}
@@ -94,7 +95,7 @@ func evaluateNestedStruct(prefix string, obj interface{}, fields map[string]inte
 			rv.Field(i).Set(reflect.New(fieldValue.Type()).Elem())
 
 			// evaluate with pointer to new instance
-			err := evaluateNestedStruct(fmt.Sprintf("%s_", fieldName), fieldValue.Addr().Interface(), fields)
+			err := evaluateStruct(fieldValue.Addr().Interface(), fields.addChild(fieldName))
 			if err != nil {
 				return err
 			}
@@ -104,7 +105,7 @@ func evaluateNestedStruct(prefix string, obj interface{}, fields map[string]inte
 
 		// add field to map
 		fmt.Println(fieldValue.Addr().Pointer())
-		fields[fmt.Sprintf("%s%s", prefix, fieldName)] = rv.Field(i).Addr().Interface()
+		fields.addField(fieldName, rv.Field(i).Addr().Interface())
 	}
 
 	return nil
@@ -140,12 +141,12 @@ func scanRows[T any](rows *sql.Rows) ([]T, error) {
 
 		entry := new(T)
 
-		fields, err := evaluateStruct(entry)
+		fields, err := evaluate(entry)
 		if err != nil {
 			return nil, err
 		}
 
-		err = rows.Scan(mapFieldsToColumns(cols, fields)...)
+		err = rows.Scan(mapFieldsToColumns(cols, fields.getFieldReferences())...)
 		if err != nil {
 			return nil, err
 		}
@@ -154,6 +155,12 @@ func scanRows[T any](rows *sql.Rows) ([]T, error) {
 	}
 
 	return result, nil
+}
+
+// TODO this func will group the rows into the correct struct arrays and fields
+func aggregateStructs[T any](rows []T) {
+
+	// TODO pick up from here
 }
 
 // RowsToStructs will take the data in rows (*sql.Rows) as input and return a slice of

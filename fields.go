@@ -86,7 +86,6 @@ func (f *fields) crawlReferencesWithPrefix(prefix string, fn func(key string, va
 func newFields(obj interface{}) (*fields, error) {
 
 	fields := &fields{
-		objRef:            obj,
 		orderedFieldNames: make([]string, 0),
 		references:        make(map[string]interface{}),
 		children:          make(map[string]*fields),
@@ -101,6 +100,8 @@ func newFields(obj interface{}) (*fields, error) {
 }
 
 func initialiseFields(obj interface{}, fields *fields) error {
+
+	fields.objRef = obj
 
 	rv := instantiateAndReturn(obj)
 	t := rv.Type()

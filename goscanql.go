@@ -157,6 +157,54 @@ func scanRows[T any](rows *sql.Rows) ([]T, error) {
 	return result, nil
 }
 
+// instantiateAndReturn will take any value and instantiate it with the equivalent Zero
+// value for that type, e.g. 0 for int or an empty struct for a struct. It will then return
+// that value as a reflect.Value.
+//
+// If the type is a pointer (at any level, e.g. *int or ****int) the function will traverse
+// to the very root of the pointers (in this case to the int) and instantiate and return
+// that. The original pointers will be set to point to this new value also.
+//
+// Note, if the pointer is uninitialised, to keep a reference to it you will need to pass
+// it in as a pointer, for example:
+//
+//	var i *int
+//
+// would need to be passed in as
+//
+//	instantiateAndReturn(&i)
+//
+// as the default value would be nil, and therefore is not addressable. However if the pointer
+// is initialised e.g. ip in this example:
+//
+//	var i int
+//	ip := &i
+//
+// then that can be passed in directly:
+//
+//	instantiateAndReturn(ip)
+func instantiateAndReturn[T any](t T) reflect.Value {
+	return instantiateValue(reflect.ValueOf(t).Elem())
+}
+
+func instantiateValue(val reflect.Value) reflect.Value {
+
+	// get value of i (must pass in as pointer), see:
+	// https://stackoverflow.com/questions/34145072/can-you-initialise-a-pointer-variable-with-golang-reflect
+
+	// if we are not at root
+	if val.Kind() == reflect.Pointer {
+
+		// instantiate current value
+		val.Set(reflect.New(val.Type().Elem()))
+
+		// crawl further
+		return instantiateValue(val.Elem())
+	}
+
+	return val
+}
+
 // TODO this func will group the rows into the correct struct arrays and fields
 func aggregateStructs[T any](rows []T) {
 

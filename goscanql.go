@@ -2,7 +2,6 @@ package goscanql
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"reflect"
 )
@@ -25,43 +24,27 @@ func evaluate(obj interface{}) (*fields, error) {
 
 func evaluateStruct(obj interface{}, fields *fields) error {
 
-	rv := reflect.ValueOf(obj)
-
-	// if not pointer error as cannot affect the original obj
-	if rv.Kind() != reflect.Pointer {
-		return errors.New("provided obj must be a pointer")
-	}
+	rv := instantiateAndReturn(obj)
+	t := rv.Type()
 
 	// if type is slice, add 1 element to it to store values
-	// TODO walk through pointers until a value is found to write to
-	// TODO (see: https://stackoverflow.com/questions/35604356/json-unmarshal-accepts-a-pointer-to-a-pointer)
-	if rv.Elem().Kind() == reflect.Slice {
+	if rv.Kind() == reflect.Slice {
 
 		// get slice type, e.g. []*Example has a slice type of *Example
-		sliceType := reflect.TypeOf(rv.Elem().Interface()).Elem()
+		sliceType := reflect.TypeOf(rv.Interface()).Elem()
 
 		// create new element of sliceType
 		element := reflect.New(sliceType).Elem()
 
-		// if underlying type is a pointer, instantiate
-		if element.Kind() == reflect.Pointer {
-			element.Set(reflect.New(sliceType.Elem()))
-		}
+		// instantiate element's root value
+		elementValue := instantiateAndReturn(element.Addr().Interface())
 
 		// append new element to slice
-		rv.Elem().Set(reflect.Append(rv.Elem(), element))
+		rv.Set(reflect.Append(rv, element))
 
-		// if element is pointer, pass it through directly
-		if element.Kind() == reflect.Pointer {
-			return evaluateStruct(rv.Elem().Index(0).Interface(), fields)
-		}
-		// else create pointer to it to pass through
-		return evaluateStruct(rv.Elem().Index(0).Addr().Interface(), fields)
+		// evaluate element
+		return evaluateStruct(elementValue.Addr().Interface(), fields)
 	}
-
-	// unwrap pointer
-	rv = rv.Elem()
-	t := rv.Type()
 
 	// extract expected fields
 	for i := 0; i < t.NumField(); i++ {
@@ -70,32 +53,19 @@ func evaluateStruct(obj interface{}, fields *fields) error {
 		fieldValue := rv.Field(i)
 
 		fieldName, ok := fieldType.Tag.Lookup(scanqlTag)
+
+		// skip if field doesn't have scanql tag
 		if !ok {
-			// skip if field doesn't have scanql tag
 			continue
 		}
 
-		// if pointer
-		if fieldValue.Kind() == reflect.Pointer {
-			rv.Field(i).Set(reflect.New(fieldType.Type.Elem()))
-
-			// evaluate with pointer to new instance
-			err := evaluateStruct(rv.Field(i).Interface(), fields.addChild(fieldName))
-			if err != nil {
-				return err
-			}
-
-			continue
-		}
+		fieldValueRoot := instantiateAndReturn(fieldValue.Addr().Interface())
 
 		// if nested struct or slice
-		if fieldValue.Kind() == reflect.Struct || fieldValue.Kind() == reflect.Slice {
-
-			// set current field to new instance of field type
-			rv.Field(i).Set(reflect.New(fieldValue.Type()).Elem())
+		if fieldValueRoot.Kind() == reflect.Struct || fieldValueRoot.Kind() == reflect.Slice {
 
 			// evaluate with pointer to new instance
-			err := evaluateStruct(fieldValue.Addr().Interface(), fields.addChild(fieldName))
+			err := evaluateStruct(fieldValueRoot.Addr().Interface(), fields.addChild(fieldName))
 			if err != nil {
 				return err
 			}
@@ -104,7 +74,6 @@ func evaluateStruct(obj interface{}, fields *fields) error {
 		}
 
 		// add field to map
-		fmt.Println(fieldValue.Addr().Pointer())
 		fields.addField(fieldName, rv.Field(i).Addr().Interface())
 	}
 
@@ -184,6 +153,7 @@ func scanRows[T any](rows *sql.Rows) ([]T, error) {
 //
 //	instantiateAndReturn(ip)
 func instantiateAndReturn[T any](t T) reflect.Value {
+	fmt.Println(reflect.TypeOf(t))
 	return instantiateValue(reflect.ValueOf(t).Elem())
 }
 

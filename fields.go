@@ -1,12 +1,14 @@
 package goscanql
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"reflect"
 )
 
 type fields struct {
 	objRef            interface{}
+	objHash           string
 	orderedFieldNames []string
 	references        map[string]interface{}
 	children          map[string]*fields
@@ -81,6 +83,61 @@ func (f *fields) crawlReferencesWithPrefix(prefix string, fn func(key string, va
 		childPrefix := fmt.Sprintf("%s%s", prefix, name)
 		child.crawlReferencesWithPrefix(childPrefix, fn)
 	}
+}
+
+func (f *fields) setHash(data map[string]*[]byte) {
+
+	byteId := make([]byte, 0)
+
+	for _, field := range f.orderedFieldNames {
+
+		// add field name to hash (to prevent field name and value collisions)
+		// e.g. if a struct has fields:
+		//  firstName string
+		//  surname   string
+		//
+		// and the user's firstname is:
+		//  surname
+		//
+		// and they don't have a surname
+		// it would collide with a user who has no firstname but has a surname of:
+		//  surname
+		byteId = append(byteId, []byte(field)...)
+
+		// add field data to id
+		byteId = append(byteId, *data[field]...)
+	}
+
+	// hash fields to create unique id for struct
+	hashBytes := []byte{}
+	sha1.New().Write(hashBytes)
+
+	f.objHash = string(hashBytes)
+
+	// repeat process for each child
+	for _, child := range f.children {
+		child.setHash(data)
+	}
+}
+
+func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
+
+	refs := mapFieldsToColumns(columns, f.getFieldReferences())
+
+	err := scan(refs...)
+	if err != nil {
+		return err
+	}
+
+	byteData := f.getFieldByteReferences()
+	byteRefs := mapFieldsToColumns(columns, byteData)
+
+	err = scan(byteRefs...)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func newFields(obj interface{}) (*fields, error) {

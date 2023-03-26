@@ -9,7 +9,7 @@ const (
 	scanqlTag = "goscanql"
 )
 
-func mapFieldsToColumns(cols []string, fields map[string]interface{}) []interface{} {
+func mapFieldsToColumns[T any](cols []string, fields map[string]T) []interface{} {
 
 	values := make([]interface{}, len(cols))
 

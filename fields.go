@@ -150,7 +150,7 @@ func newFields(obj interface{}) (*fields, error) {
 		children:          make(map[string]*fields),
 	}
 
-	err := initialiseFields(obj, fields)
+	err := initialiseFields("", obj, fields)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func newFields(obj interface{}) (*fields, error) {
 	return fields, nil
 }
 
-func initialiseFields(obj interface{}, fields *fields) error {
+func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 
 	fields.objRef = obj
 
@@ -181,7 +181,7 @@ func initialiseFields(obj interface{}, fields *fields) error {
 		rv.Set(reflect.Append(rv, element))
 
 		// add child and evaluate it
-		return initialiseFields(elementValue.Addr().Interface(), fields)
+		return initialiseFields("", elementValue.Addr().Interface(), fields)
 	}
 
 	// if type is primitive (not slice or struct) use arbitrary field name of the attributes
@@ -209,6 +209,10 @@ func initialiseFields(obj interface{}, fields *fields) error {
 
 		fieldName, ok := fieldType.Tag.Lookup(scanqlTag)
 
+		if prefix != "" {
+			fieldName = fmt.Sprintf("%s_%s", prefix, fieldName)
+		}
+
 		// skip if field doesn't have scanql tag
 		if !ok {
 			continue
@@ -216,10 +220,17 @@ func initialiseFields(obj interface{}, fields *fields) error {
 
 		fieldValueRoot := instantiateAndReturn(fieldValue.Addr().Interface())
 
-		// if nested struct or slice
-		if fieldValueRoot.Kind() == reflect.Struct || fieldValueRoot.Kind() == reflect.Slice {
+		// if nested struct
+		if fieldValueRoot.Kind() == reflect.Struct {
 
-			// evaluate with pointer to new instance
+			// evaluate as part of this struct (as one-to-one relationship)
+			initialiseFields(fieldName, fieldValueRoot.Addr().Interface(), fields)
+		}
+
+		// if nested slice
+		if fieldValueRoot.Kind() == reflect.Slice {
+
+			// evaluate with pointer to new instance (as child because one-to-many relationship)
 			err := fields.addNewChild(fieldName, fieldValueRoot.Addr().Interface())
 			if err != nil {
 				return err

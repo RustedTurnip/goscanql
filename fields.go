@@ -184,6 +184,23 @@ func initialiseFields(obj interface{}, fields *fields) error {
 		return initialiseFields(elementValue.Addr().Interface(), fields)
 	}
 
+	// if type is primitive (not slice or struct) use arbitrary field name of the attributes
+	// type and return e.g. for arry of strings (rather than array of structs):
+	//
+	//  type User struct {
+	//      Aliases []string `goscanql:"aliases"`
+	//  }
+	//
+	// would end up as:
+	//
+	//  "aliases_string"
+	//
+	// in the field references so that it is accessible.
+	if rv.Kind() != reflect.Struct {
+		fields.addField(rv.Type().String(), rv.Addr().Interface())
+		return nil
+	}
+
 	// extract expected fields
 	for i := 0; i < t.NumField(); i++ {
 

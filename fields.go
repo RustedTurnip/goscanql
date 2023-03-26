@@ -137,6 +137,8 @@ func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
 		return err
 	}
 
+	f.setHash(byteData)
+
 	return nil
 }
 

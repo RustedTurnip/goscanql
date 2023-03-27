@@ -6,9 +6,59 @@ import (
 	"reflect"
 )
 
+// fieldsContainer maintains a record of a slice of entities along with the
+// fields representations of those entities to facilitate fields merging.
+type fieldsContainer struct {
+
+	// sliceRef is the reference of the slice containing the entities as their
+	// own type.
+	sliceRef interface{}
+
+	// fields represents the entities contained in sliceRef but as fields (to
+	// facilitate hash lookups).
+	fields []*fields
+}
+
+// append will add the provided fields (and the entity it represents) into
+// the fieldsContainer.
+func (fc *fieldsContainer) append(f *fields) {
+
+	parent := reflect.ValueOf(fc.sliceRef).Elem()
+	fParent := reflect.ValueOf(f.sliceRef.sliceRef).Elem()
+
+	parent.Set(reflect.Append(parent, fParent.Index(0)))
+	fc.fields = append(fc.fields, f)
+}
+
+// getExisting returns the existing *fields entity that is contained within
+// the fieldsContainer by looking up the provided fields hash.
+//
+// nil is returned when the fields entity doesn't already exist.
+func (fc *fieldsContainer) getExisting(f *fields) *fields {
+
+	fHash := f.getHash()
+
+	for _, existing := range fc.fields {
+		if existing.getHash() == fHash {
+			return existing
+		}
+	}
+
+	return nil
+}
+
+// newFieldsContainer is a fieldsContainer constructor
+func newFieldsContainer(slice interface{}, f *fields) *fieldsContainer {
+	return &fieldsContainer{
+		sliceRef: slice,
+		fields: []*fields{
+			f,
+		},
+	}
+}
+
 type fields struct {
-	objRef            interface{}
-	objHash           string
+	sliceRef          *fieldsContainer
 	orderedFieldNames []string
 	references        map[string]interface{}
 	children          map[string]*fields
@@ -51,17 +101,6 @@ func (f *fields) getFieldReferences() map[string]interface{} {
 	return m
 }
 
-func (f *fields) getFieldByteReferences() map[string]*[]byte {
-
-	m := make(map[string]*[]byte)
-
-	f.crawlReferences(func(key string, value interface{}) {
-		m[key] = &[]byte{}
-	})
-
-	return m
-}
-
 func (f *fields) crawlReferences(fn func(key string, value interface{})) {
 	f.crawlReferencesWithPrefix("", fn)
 }
@@ -85,39 +124,24 @@ func (f *fields) crawlReferencesWithPrefix(prefix string, fn func(key string, va
 	}
 }
 
-func (f *fields) setHash(data map[string]*[]byte) {
+func (f *fields) getHash() string {
 
-	byteId := make([]byte, 0)
+	raw := make([]byte, 0)
 
-	for _, field := range f.orderedFieldNames {
+	for _, key := range f.orderedFieldNames {
 
-		// add field name to hash (to prevent field name and value collisions)
-		// e.g. if a struct has fields:
-		//  firstName string
-		//  surname   string
-		//
-		// and the user's firstname is:
-		//  surname
-		//
-		// and they don't have a surname
-		// it would collide with a user who has no firstname but has a surname of:
-		//  surname
-		byteId = append(byteId, []byte(field)...)
+		value := f.references[key]
 
-		// add field data to id
-		byteId = append(byteId, *data[field]...)
+		strValue := fmt.Sprintf("%s%v", key, reflect.ValueOf(value).Elem().Interface())
+
+		raw = append(raw, []byte(strValue)...)
 	}
 
 	// hash fields to create unique id for struct
-	hashBytes := []byte{}
-	sha1.New().Write(hashBytes)
+	h := sha1.New()
+	h.Write(raw)
 
-	f.objHash = string(hashBytes)
-
-	// repeat process for each child
-	for _, child := range f.children {
-		child.setHash(data)
-	}
+	return string(h.Sum(nil))
 }
 
 func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
@@ -128,16 +152,6 @@ func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
 	if err != nil {
 		return err
 	}
-
-	byteData := f.getFieldByteReferences()
-	byteRefs := mapFieldsToColumns(columns, byteData)
-
-	err = scan(byteRefs...)
-	if err != nil {
-		return err
-	}
-
-	f.setHash(byteData)
 
 	return nil
 }
@@ -150,6 +164,8 @@ func newFields(obj interface{}) (*fields, error) {
 		children:          make(map[string]*fields),
 	}
 
+	fields.sliceRef = newFieldsContainer(obj, fields)
+
 	err := initialiseFields("", obj, fields)
 	if err != nil {
 		return nil, err
@@ -160,13 +176,13 @@ func newFields(obj interface{}) (*fields, error) {
 
 func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 
-	fields.objRef = obj
-
 	rv := instantiateAndReturn(obj)
 	t := rv.Type()
 
 	// if type is slice, add 1 element to it to store values
 	if rv.Kind() == reflect.Slice {
+
+		fields.sliceRef.sliceRef = rv.Addr().Interface()
 
 		// get slice type, e.g. []*Example has a slice type of *Example
 		sliceType := reflect.TypeOf(rv.Interface()).Elem()
@@ -175,13 +191,13 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 		element := reflect.New(sliceType).Elem()
 
 		// instantiate element's root value
-		elementValue := instantiateAndReturn(element.Addr().Interface())
+		instantiateAndReturn(element.Addr().Interface())
 
 		// append new element to slice
 		rv.Set(reflect.Append(rv, element))
 
 		// add child and evaluate it
-		return initialiseFields("", elementValue.Addr().Interface(), fields)
+		return initialiseFields("", rv.Index(0).Addr().Interface(), fields)
 	}
 
 	// if type is primitive (not slice or struct) use arbitrary field name of the attributes
@@ -246,6 +262,32 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 	return nil
 }
 
+func (f *fields) merge(m *fields) error {
+
+	existing := f.sliceRef.getExisting(m)
+
+	// if an entirely new value is found, add it and return as nothing else required
+	if existing == nil {
+		f.sliceRef.append(m)
+		return nil
+	}
+
+	// for each of existing fields children, merge with incoming fields
+	for name, child := range existing.children {
+
+		mChild, ok := m.children[name]
+		if !ok {
+			return fmt.Errorf("") // TODO
+		}
+
+		if err := child.merge(mChild); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // instantiateAndReturn will take any value and instantiate it with the equivalent Zero
 // value for that type, e.g. 0 for int or an empty struct for a struct. It will then return
 // that value as a reflect.Value.
@@ -273,7 +315,6 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 //
 //	instantiateAndReturn(ip)
 func instantiateAndReturn[T any](t T) reflect.Value {
-	fmt.Println(reflect.TypeOf(t))
 	return instantiateValue(reflect.ValueOf(t).Elem())
 }
 

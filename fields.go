@@ -262,14 +262,43 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 	return nil
 }
 
+// merge will attempt to merge the provided fields (m) to the fields being called upon.
+// This merge will result in any differing elements being added along side the current
+// element if they are different but belong to a slice.
+//
+// If the parent element is the same, the merge will apply to children of the parent
+// and leave the parent untouched.
+//
+// If the parent and provided fields are different and do not belong to a slice in which
+// they can coexist, an error will be returned.
 func (f *fields) merge(m *fields) error {
 
-	existing := f.sliceRef.getExisting(m)
+	var existing *fields
 
-	// if an entirely new value is found, add it and return as nothing else required
-	if existing == nil {
-		f.sliceRef.append(m)
-		return nil
+	// if element doesn't belong to a slice
+	if f.sliceRef.sliceRef == nil {
+
+		// and the provided element doesn't match the current element
+		// then fail merge as they are different so children cannot be merged
+		if f.getHash() != m.getHash() {
+			return fmt.Errorf("cannot merge fields as their data differs and they do not belong to a slice.")
+		}
+
+		// if the provided fields matches the current fields, set existing to be
+		// current
+		existing = f
+
+	} else {
+
+		// else, if sliceRef isn't nil, set existing to be any existing entity with
+		// same hash
+		existing = f.sliceRef.getExisting(m)
+
+		// if *fields doesn't already exist, add it as new
+		if existing == nil {
+			f.sliceRef.append(m)
+			return nil
+		}
 	}
 
 	// for each of existing fields children, merge with incoming fields
@@ -277,7 +306,7 @@ func (f *fields) merge(m *fields) error {
 
 		mChild, ok := m.children[name]
 		if !ok {
-			return fmt.Errorf("") // TODO
+			return fmt.Errorf("provided fields is missing expected child \"%s\"", name)
 		}
 
 		if err := child.merge(mChild); err != nil {

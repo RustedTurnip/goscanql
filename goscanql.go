@@ -9,38 +9,6 @@ const (
 	scanqlTag = "goscanql"
 )
 
-//type aggregator[T any] struct {
-//	results  []*T
-//	hashRefs *hashLookup
-//}
-//
-//type hashLookup struct {
-//	// map[hash]object_reference
-//	hashReferences map[string]interface{}
-//
-//	// map[fields_path]*hashLookup
-//	hashChildren map[string]*hashLookup
-//}
-//
-//func (h *hashLookup) addFields(f *fields) {
-//
-//	if _, ok := h.hashReferences[f.objHash]; !ok {
-//		h.hashReferences[f.objHash] = reflect.ValueOf(f.sliceRef).Elem().Index(0)
-//
-//		slice := reflect.ValueOf(f.sliceRef).Elem()
-//		slice.Set(reflect.Append(slice, reflect.ValueOf(f.sliceRef).Elem().Elem()))
-//	}
-//
-//	for name, child := range f.children {
-//		h.hashChildren[name] = &hashLookup{
-//			hashReferences: make(map[string]interface{}),
-//			hashChildren:   make(map[string]*hashLookup),
-//		}
-//
-//		h.hashChildren[name].addFields(child)
-//	}
-//}
-
 func mapFieldsToColumns[T any](cols []string, fields map[string]T) []interface{} {
 
 	values := make([]interface{}, len(cols))

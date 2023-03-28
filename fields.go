@@ -2,6 +2,7 @@ package goscanql
 
 import (
 	"crypto/sha1"
+	"database/sql"
 	"fmt"
 	"reflect"
 )
@@ -178,6 +179,13 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 
 	rv := instantiateAndReturn(obj)
 	t := rv.Type()
+
+	// if type implements the Scanner interface, add it as is
+	iScanner := reflect.TypeOf((*sql.Scanner)(nil)).Elem()
+	if rv.Type().Implements(iScanner) {
+		fields.addField(rv.Type().String(), rv.Addr().Interface())
+		return nil
+	}
 
 	// if type is slice, add 1 element to it to store values
 	if rv.Kind() == reflect.Slice {

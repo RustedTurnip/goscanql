@@ -241,6 +241,7 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 
 			// evaluate as part of this struct (as one-to-one relationship)
 			initialiseFields(fieldName, fieldValueRoot.Addr().Interface(), fields)
+			continue
 		}
 
 		// if nested slice

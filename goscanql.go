@@ -28,7 +28,8 @@ func mapFieldsToColumns[T any](cols []string, fields map[string]T) []interface{}
 
 func scanRows[T any](rows *sql.Rows) ([]T, error) {
 
-	result := make([]T, 0)
+	result := &[]T{}
+	var resultFields *fields
 
 	cols, err := rows.Columns()
 	if err != nil {
@@ -37,9 +38,9 @@ func scanRows[T any](rows *sql.Rows) ([]T, error) {
 
 	for rows.Next() {
 
-		entry := new(T)
+		entry := &[]T{}
 
-		fields, err := newFields(entry)
+		fields, err := newFields(&entry)
 		if err != nil {
 			return nil, err
 		}
@@ -48,15 +49,20 @@ func scanRows[T any](rows *sql.Rows) ([]T, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		if len(*result) == 0 {
+			result = entry
+			resultFields = fields
+			continue
+		}
+
+		err = resultFields.merge(fields)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return result, nil
-}
-
-// TODO this func will group the rows into the correct struct arrays and fields
-func aggregateStructs[T any](rows []T) {
-
-	// TODO pick up from here
+	return *result, nil
 }
 
 // RowsToStructs will take the data in rows (*sql.Rows) as input and return a slice of

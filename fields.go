@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // fieldsContainer maintains a record of a slice of entities along with the
@@ -216,6 +217,12 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 
 		// add child and evaluate it
 		return initialiseFields("", rv.Index(0).Addr().Interface(), fields)
+	}
+
+	// if time.Time
+	if _, ok := rv.Interface().(time.Time); ok {
+		fields.addField(prefix, rv.Addr().Interface())
+		return nil
 	}
 
 	// if primitive

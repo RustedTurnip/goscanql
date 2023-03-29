@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // fieldsContainer maintains a record of a slice of entities along with the
@@ -108,21 +109,30 @@ func (f *fields) crawlReferences(fn func(key string, value interface{})) {
 
 func (f *fields) crawlReferencesWithPrefix(prefix string, fn func(key string, value interface{})) {
 
-	// if there is a prefix, format it accordingly
-	if prefix != "" {
-		prefix = fmt.Sprintf("%s_", prefix)
-	}
-
 	// for each field, run callback (fn)
 	for name, reference := range f.references {
-		fn(fmt.Sprintf("%s%s", prefix, name), reference)
+		fn(buildReferenceName(prefix, name), reference)
 	}
 
 	// crawl through children and repeat
 	for name, child := range f.children {
-		childPrefix := fmt.Sprintf("%s%s", prefix, name)
-		child.crawlReferencesWithPrefix(childPrefix, fn)
+		child.crawlReferencesWithPrefix(buildReferenceName(prefix, name), fn)
 	}
+}
+
+func buildReferenceName(prefix, name string) string {
+
+	strs := make([]string, 0)
+
+	if prefix != "" {
+		strs = append(strs, prefix)
+	}
+
+	if name != "" {
+		strs = append(strs, name)
+	}
+
+	return strings.Join(strs, "_")
 }
 
 func (f *fields) getHash() string {
@@ -183,7 +193,7 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 	// if type implements the Scanner interface, add it as is
 	iScanner := reflect.TypeOf((*sql.Scanner)(nil)).Elem()
 	if rv.Type().Implements(iScanner) {
-		fields.addField(rv.Type().String(), rv.Addr().Interface())
+		fields.addField(prefix, rv.Addr().Interface())
 		return nil
 	}
 
@@ -208,20 +218,9 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 		return initialiseFields("", rv.Index(0).Addr().Interface(), fields)
 	}
 
-	// if type is primitive (not slice or struct) use arbitrary field name of the attributes
-	// type and return e.g. for arry of strings (rather than array of structs):
-	//
-	//  type User struct {
-	//      Aliases []string `goscanql:"aliases"`
-	//  }
-	//
-	// would end up as:
-	//
-	//  "aliases_string"
-	//
-	// in the field references so that it is accessible.
+	// if primitive
 	if rv.Kind() != reflect.Struct {
-		fields.addField(rv.Type().String(), rv.Addr().Interface())
+		fields.addField(prefix, rv.Addr().Interface())
 		return nil
 	}
 

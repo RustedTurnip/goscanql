@@ -17,6 +17,7 @@ func mapFieldsToColumns[T any](cols []string, fields map[string]T) []interface{}
 
 		value, ok := fields[col]
 		if !ok {
+			values[i] = &[]byte{}
 			continue
 		}
 

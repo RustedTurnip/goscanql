@@ -64,6 +64,7 @@ type fields struct {
 	sliceRef          *fieldsContainer
 	orderedFieldNames []string
 	references        map[string]interface{}
+	byteReferences    map[string]*[]byte
 	children          map[string]*fields
 }
 
@@ -91,34 +92,62 @@ func (f *fields) addField(name string, value interface{}) {
 	// add field to this instance
 	f.orderedFieldNames = append(f.orderedFieldNames, name)
 	f.references[name] = value
+	f.byteReferences[name] = &[]byte{}
 }
 
 func (f *fields) getFieldReferences() map[string]interface{} {
 
 	m := make(map[string]interface{})
 
-	f.crawlReferences(func(key string, value interface{}) {
-		m[key] = value
+	f.crawlFields(func(prefix string, fi *fields) bool {
+
+		if fi.isNil() {
+			return true
+		}
+
+		for name, reference := range fi.references {
+			m[buildReferenceName(prefix, name)] = reference
+		}
+
+		return false
 	})
 
 	return m
 }
 
-func (f *fields) crawlReferences(fn func(key string, value interface{})) {
-	f.crawlReferencesWithPrefix("", fn)
+func (f *fields) getByteReferences() map[string]*[]byte {
+
+	m := make(map[string]*[]byte)
+
+	f.crawlFields(func(prefix string, fi *fields) bool {
+
+		for name, reference := range fi.byteReferences {
+			m[buildReferenceName(prefix, name)] = reference
+		}
+
+		return false
+	})
+
+	return m
 }
 
-func (f *fields) crawlReferencesWithPrefix(prefix string, fn func(key string, value interface{})) {
+func (f *fields) crawlFields(fn func(string, *fields) bool) {
+	f.crawlFieldsWithPrefix("", fn)
+}
 
-	// for each field, run callback (fn)
-	for name, reference := range f.references {
-		fn(buildReferenceName(prefix, name), reference)
+func (f *fields) crawlFieldsWithPrefix(prefix string, fn func(string, *fields) bool) bool {
+
+	// if cancel signalled, return and don't bother processing this field's children
+	if fn(prefix, f) {
+		return true
 	}
 
-	// crawl through children and repeat
+	// crawl each child
 	for name, child := range f.children {
-		child.crawlReferencesWithPrefix(buildReferenceName(prefix, name), fn)
+		child.crawlFieldsWithPrefix(buildReferenceName(prefix, name), fn)
 	}
+
+	return false
 }
 
 func buildReferenceName(prefix, name string) string {
@@ -156,14 +185,49 @@ func (f *fields) getHash() string {
 	return string(h.Sum(nil))
 }
 
+func (f *fields) isNil() bool {
+
+	for _, b := range f.byteReferences {
+		if len(*b) > 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (f *fields) emptyNilFieldsFromSlice() {
+
+	if f.isNil() && f.sliceRef.sliceRef != nil {
+
+		slice := reflect.ValueOf(f.sliceRef.sliceRef).Elem()
+		slice.Set(reflect.New(slice.Type()).Elem())
+
+		return
+	}
+
+	for _, child := range f.children {
+		child.emptyNilFieldsFromSlice()
+	}
+}
+
 func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
 
-	refs := mapFieldsToColumns(columns, f.getFieldReferences())
+	byteRefs := mapFieldsToColumns(columns, f.getByteReferences())
 
-	err := scan(refs...)
+	err := scan(byteRefs...)
 	if err != nil {
 		return err
 	}
+
+	refs := mapFieldsToColumns(columns, f.getFieldReferences())
+
+	err = scan(refs...)
+	if err != nil {
+		return err
+	}
+
+	f.emptyNilFieldsFromSlice()
 
 	return nil
 }
@@ -173,6 +237,7 @@ func newFields(obj interface{}) (*fields, error) {
 	fields := &fields{
 		orderedFieldNames: make([]string, 0),
 		references:        make(map[string]interface{}),
+		byteReferences:    make(map[string]*[]byte),
 		children:          make(map[string]*fields),
 	}
 
@@ -288,6 +353,10 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 // they can coexist, an error will be returned.
 func (f *fields) merge(m *fields) error {
 
+	if m.isNil() {
+		return nil
+	}
+
 	var existing *fields
 
 	// if element doesn't belong to a slice
@@ -322,6 +391,10 @@ func (f *fields) merge(m *fields) error {
 		mChild, ok := m.children[name]
 		if !ok {
 			return fmt.Errorf("provided fields is missing expected child \"%s\"", name)
+		}
+
+		if mChild.isNil() {
+			continue
 		}
 
 		if err := child.merge(mChild); err != nil {

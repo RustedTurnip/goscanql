@@ -1,0 +1,9 @@
+# IDEs
+.idea/
+.vscode/
+
+# File System
+**/.DS_Store
+
+# Testing
+*scripts_test.go

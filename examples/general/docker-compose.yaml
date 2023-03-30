@@ -1,0 +1,29 @@
+version: '3.7'
+
+services:
+
+  goscanqldb:
+    image: postgres:15.2
+    restart: always
+    hostname: goscanqldb
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=goscanql
+    ports:
+      - 5432:5432
+    volumes:
+      # copy the sql script to create tables
+      - ./db_schema.sql:/docker-entrypoint-initdb.d/create_tables.sql
+
+  example:
+    build: ./
+    image: example
+    depends_on:
+      - goscanqldb
+    command:
+      - --db-user=postgres
+      - --db-pass=postgres
+      - --db-name=goscanql
+      - --db-host=goscanqldb
+      - --db-port=5432

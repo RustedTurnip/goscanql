@@ -71,7 +71,7 @@ func (fc *fieldsContainer) empty() {
 
 	// if slice, replace slice with an empty one
 	case reflect.Slice:
-		rv.Set(reflect.New(t).Elem())
+		rv.Set(reflect.MakeSlice(t, 0, 0))
 		return
 
 	default:

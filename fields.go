@@ -50,6 +50,7 @@ func (fs *fieldsSlice) getExisting(f *fields) *fields {
 	return nil
 }
 
+// empty will set the slice to be an empty slice (removing any contained elements)
 func (fc *fieldsSlice) empty() {
 
 	if fc.sliceRef == nil {
@@ -72,6 +73,8 @@ func newFieldsSlice(container interface{}, f *fields) *fieldsSlice {
 	}
 }
 
+// fields holds a goscanql parsed struct, maintaining references to the fields
+// of the struct and any sub-structs (children).
 type fields struct {
 
 	// obj is a reference (pointer) to the struct that this fields fields belong to.
@@ -79,19 +82,43 @@ type fields struct {
 
 	// slice represents the slice that the struct is a part of. If the struct isn't a part
 	// of a slice, this will be nil.
-	slice                *fieldsSlice
-	orderedFieldNames    []string
+	slice *fieldsSlice
+
+	// orderedFieldNames maintains the field names in the order of which they were added
+	// to facilitate reliable hashing when comparing fields entities.
+	orderedFieldNames []string
+
+	// orderedOneToOneNames maintains the names of the one-to-one relationship children so
+	// that they can reliably be hashed for comparison.
 	orderedOneToOneNames []string
-	references           map[string]interface{}
-	byteReferences       map[string]*[]byte
-	oneToOnes            map[string]*fields
-	oneToManys           map[string]*fields
+
+	// references holds a reference to each field belonging to a fields entity so they can
+	// be set.
+	references map[string]interface{}
+
+	// byteReferences maintains a reference of a byte slice for each field which is used for
+	// determining nil fields.
+	byteReferences map[string]*[]byte
+
+	// oneToOnes holds all child structs of the fields entity that are maintained as a
+	// one-to-one relationship.
+	oneToOnes map[string]*fields
+
+	// oneToManys holds all child structs of the fields entity that are maintained as a
+	// one-to-many relationship (meaning the sub-struct is contained within a slice).
+	oneToManys map[string]*fields
 }
 
+// addNewChild will create a new fields entity and add it to the current fields as a child
+// in either a one-to-one relationship, or a one-to-many relationship based on the type
+// of obj.
+//
+// Note: obj must be a reference to the object, e.g. of type *Struct, or *[]Struct.
 func (f *fields) addNewChild(name string, obj interface{}) error {
 
 	rv := reflect.ValueOf(obj)
 
+	// create new fields instance
 	child, err := newFields(obj)
 	if err != nil {
 		return err
@@ -112,7 +139,7 @@ func (f *fields) addNewChild(name string, obj interface{}) error {
 		}
 	}
 
-	// add child to appropriate relationship map fo fields
+	// add child to appropriate relationship map of fields
 	if rv.Kind() == reflect.Slice {
 		f.oneToManys[name] = child
 		return nil
@@ -122,6 +149,7 @@ func (f *fields) addNewChild(name string, obj interface{}) error {
 	return nil
 }
 
+// addField will add a single field to the current fields (e.g. a string or int).
 func (f *fields) addField(name string, value interface{}) {
 
 	// assert that field hasn't already been added
@@ -135,6 +163,8 @@ func (f *fields) addField(name string, value interface{}) {
 	f.byteReferences[name] = &[]byte{}
 }
 
+// getFieldReferences returns a map of all of the fields references (including any child
+// field references).
 func (f *fields) getFieldReferences() map[string]interface{} {
 
 	m := make(map[string]interface{})
@@ -155,6 +185,8 @@ func (f *fields) getFieldReferences() map[string]interface{} {
 	return m
 }
 
+// getByteReferences returns a map of all of the fields byte references (including any child
+// field references).
 func (f *fields) getByteReferences() map[string]*[]byte {
 
 	m := make(map[string]*[]byte)
@@ -171,10 +203,13 @@ func (f *fields) getByteReferences() map[string]*[]byte {
 	return m
 }
 
+// crawlFields will recursively iterate of each field of each fields and its children.
 func (f *fields) crawlFields(fn func(string, *fields) bool) {
 	f.crawlFieldsWithPrefix("", fn)
 }
 
+// crawlFields will recursively iterate of each field of each fields and its children
+// with the added context of the prefix field which is used to reference child fields.
 func (f *fields) crawlFieldsWithPrefix(prefix string, fn func(string, *fields) bool) bool {
 
 	// if cancel signalled, return and don't bother processing this field's children
@@ -195,6 +230,10 @@ func (f *fields) crawlFieldsWithPrefix(prefix string, fn func(string, *fields) b
 	return false
 }
 
+// buildReferenceName will put together a field reference name based on the provided
+// prefix, and the field's name, e.g.
+//
+// Prefix: pet, Name: animal := pet_animal
 func buildReferenceName(prefix, name string) string {
 
 	strs := make([]string, 0)
@@ -210,6 +249,7 @@ func buildReferenceName(prefix, name string) string {
 	return strings.Join(strs, "_")
 }
 
+// getHash will hash a fields entity so that it can be easily compared to another fields.
 func (f *fields) getHash() string {
 
 	raw := make([]byte, 0)
@@ -230,6 +270,8 @@ func (f *fields) getHash() string {
 	return string(h.Sum(nil))
 }
 
+// isNil will the incoming data to a fields (once it has been written to the byteReferences)
+// to see if the object that the fields represents will be nil.
 func (f *fields) isNil() bool {
 
 	for _, b := range f.byteReferences {
@@ -241,6 +283,8 @@ func (f *fields) isNil() bool {
 	return true
 }
 
+// isMatch will compare the provided fields (m) to the current fields to see if they are equal
+// in value, returning true if they are, and false otherwise.
 func (f *fields) isMatch(m *fields) bool {
 
 	if f.getHash() != m.getHash() {
@@ -262,20 +306,26 @@ func (f *fields) isMatch(m *fields) bool {
 	return true
 }
 
+// emptyNilFields will nullify where possible any nil objects that are represented by the fields.
 func (f *fields) emptyNilFields() {
 
+	// if the fields values are nil
 	if f.isNil() {
 
+		// if the object belongs to a slice, empty that
 		if f.slice != nil {
 			f.slice.empty()
 		}
 
+		// empty the object represented by the fields, e.g. *int would be set to nil,
+		// or int would be set to 0.
 		rv := reflect.ValueOf(f.obj).Elem()
 		rv.Set(reflect.New(rv.Type()).Elem())
 
 		return
 	}
 
+	// repeat for all children
 	for _, child := range f.oneToOnes {
 		child.emptyNilFields()
 	}
@@ -285,6 +335,8 @@ func (f *fields) emptyNilFields() {
 	}
 }
 
+// scan will attempt to apply the provided scan function to the fields object
+// by providing it with all the field references so that values can be written.
 func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
 
 	byteRefs := mapFieldsToColumns(columns, f.getByteReferences())
@@ -306,6 +358,8 @@ func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
 	return nil
 }
 
+// newFields is the fields constructor that will process the provided object, and use
+// reflection to map it out and maintain references to the object's fields.
 func newFields(obj interface{}) (*fields, error) {
 
 	// instantiate root of obj to create fields around
@@ -357,6 +411,8 @@ func newFields(obj interface{}) (*fields, error) {
 	return fields, nil
 }
 
+// initialiseFields uses reflection to map it out and maintain references to the object's
+// fields.
 func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 
 	rva := instantiateAndReturnAll(obj)

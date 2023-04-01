@@ -140,7 +140,7 @@ func (f *fields) addNewChild(name string, obj interface{}) error {
 	}
 
 	// add child to appropriate relationship map of fields
-	if rv.Kind() == reflect.Slice {
+	if rv.Elem().Kind() == reflect.Slice {
 		f.oneToManys[name] = child
 		return nil
 	}

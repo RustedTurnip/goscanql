@@ -9,47 +9,39 @@ import (
 	"time"
 )
 
-// fieldsContainer maintains a record of a slice of entities along with the
+// fieldsSlice maintains a record of a slice of entities along with the
 // fields representations of those entities to facilitate fields merging.
-type fieldsContainer struct {
+type fieldsSlice struct {
 
-	// containerRef is the reference of the slice containing the entities as their
+	// sliceRef is the reference of the slice containing the entities as their
 	// own type.
-	containerRef interface{}
+	sliceRef interface{}
 
-	// fields represents the entities contained in containerRef but as fields (to
+	// fields represents the entities contained in sliceRef but as fields (to
 	// facilitate hash lookups).
 	fields []*fields
 }
 
-func (fc *fieldsContainer) isSlice() bool {
-	return reflect.TypeOf(fc.containerRef).Elem().Kind() == reflect.Slice
-}
-
 // append will add the provided fields (and the entity it represents) into
-// the fieldsContainer.
-func (fc *fieldsContainer) append(f *fields) {
+// the fieldsSlice.
+func (fs *fieldsSlice) append(f *fields) {
 
-	if !fc.isSlice() {
-		panic(fmt.Errorf("cannot append to fieldsContainer that doesn't hold slice"))
-	}
-
-	parent := reflect.ValueOf(fc.containerRef).Elem()
-	fParent := reflect.ValueOf(f.container.containerRef).Elem()
+	parent := reflect.ValueOf(fs.sliceRef).Elem()
+	fParent := reflect.ValueOf(f.slice.sliceRef).Elem()
 
 	parent.Set(reflect.Append(parent, fParent.Index(0)))
-	fc.fields = append(fc.fields, f)
+	fs.fields = append(fs.fields, f)
 }
 
 // getExisting returns the existing *fields entity that is contained within
-// the fieldsContainer by looking up the provided fields hash.
+// the fieldsSlice by looking up the provided fields hash.
 //
 // nil is returned when the fields entity doesn't already exist.
-func (fc *fieldsContainer) getExisting(f *fields) *fields {
+func (fs *fieldsSlice) getExisting(f *fields) *fields {
 
 	fHash := f.getHash()
 
-	for _, existing := range fc.fields {
+	for _, existing := range fs.fields {
 		if existing.getHash() == fHash {
 			return existing
 		}
@@ -58,70 +50,106 @@ func (fc *fieldsContainer) getExisting(f *fields) *fields {
 	return nil
 }
 
-func (fc *fieldsContainer) empty() {
+// empty will set the slice to be an empty slice (removing any contained elements)
+func (fc *fieldsSlice) empty() {
 
-	if fc.containerRef == nil {
+	if fc.sliceRef == nil {
 		return
 	}
 
-	t := reflect.TypeOf(fc.containerRef).Elem()
-	rv := reflect.ValueOf(fc.containerRef).Elem()
+	t := reflect.TypeOf(fc.sliceRef).Elem()
+	rv := reflect.ValueOf(fc.sliceRef).Elem()
 
-	switch t.Kind() {
-
-	// if slice, replace slice with an empty one
-	case reflect.Slice:
-		rv.Set(reflect.MakeSlice(t, 0, 0))
-		return
-
-	default:
-		rv.Set(reflect.New(t).Elem())
-	}
+	rv.Set(reflect.MakeSlice(t, 0, 0))
 }
 
-// newFieldsContainer is a fieldsContainer constructor
-func newFieldsContainer(container interface{}, f *fields) *fieldsContainer {
-	return &fieldsContainer{
-		containerRef: container,
+// newFieldsSlice is a fieldsSlice constructor
+func newFieldsSlice(container interface{}, f *fields) *fieldsSlice {
+	return &fieldsSlice{
+		sliceRef: container,
 		fields: []*fields{
 			f,
 		},
 	}
 }
 
+// fields holds a goscanql parsed struct, maintaining references to the fields
+// of the struct and any sub-structs (children).
 type fields struct {
-	container            *fieldsContainer
-	orderedFieldNames    []string
+
+	// obj is a reference (pointer) to the struct that this fields fields belong to.
+	obj interface{}
+
+	// slice represents the slice that the struct is a part of. If the struct isn't a part
+	// of a slice, this will be nil.
+	slice *fieldsSlice
+
+	// orderedFieldNames maintains the field names in the order of which they were added
+	// to facilitate reliable hashing when comparing fields entities.
+	orderedFieldNames []string
+
+	// orderedOneToOneNames maintains the names of the one-to-one relationship children so
+	// that they can reliably be hashed for comparison.
 	orderedOneToOneNames []string
-	references           map[string]interface{}
-	byteReferences       map[string]*[]byte
-	oneToOnes            map[string]*fields
-	oneToManys           map[string]*fields
+
+	// references holds a reference to each field belonging to a fields entity so they can
+	// be set.
+	references map[string]interface{}
+
+	// byteReferences maintains a reference of a byte slice for each field which is used for
+	// determining nil fields.
+	byteReferences map[string]*[]byte
+
+	// oneToOnes holds all child structs of the fields entity that are maintained as a
+	// one-to-one relationship.
+	oneToOnes map[string]*fields
+
+	// oneToManys holds all child structs of the fields entity that are maintained as a
+	// one-to-many relationship (meaning the sub-struct is contained within a slice).
+	oneToManys map[string]*fields
 }
 
-func (f *fields) addNewOneToMany(name string, obj interface{}) error {
-	return addNewChild(name, obj, f.oneToManys)
-}
+// addNewChild will create a new fields entity and add it to the current fields as a child
+// in either a one-to-one relationship, or a one-to-many relationship based on the type
+// of obj.
+//
+// Note: obj must be a reference to the object, e.g. of type *Struct, or *[]Struct.
+func (f *fields) addNewChild(name string, obj interface{}) error {
 
-func (f *fields) addNewOneToOne(name string, obj interface{}) error {
-	return addNewChild(name, obj, f.oneToOnes)
-}
+	rv := reflect.ValueOf(obj)
 
-func addNewChild(name string, obj interface{}, m map[string]*fields) error {
-
-	if _, ok := m[name]; ok {
-		panic(fmt.Errorf("child with same name (\"%s\") already exists", name))
-	}
-
+	// create new fields instance
 	child, err := newFields(obj)
 	if err != nil {
 		return err
 	}
 
-	m[name] = child
+	// ensure that child with name doesn't already exist
+	collisionErr := fmt.Errorf("child already exists with name \"%s\"", name)
+
+	for childName, _ := range f.oneToOnes {
+		if childName == name {
+			return collisionErr
+		}
+	}
+
+	for childName, _ := range f.oneToManys {
+		if childName == name {
+			return collisionErr
+		}
+	}
+
+	// add child to appropriate relationship map of fields
+	if rv.Elem().Kind() == reflect.Slice {
+		f.oneToManys[name] = child
+		return nil
+	}
+
+	f.oneToOnes[name] = child
 	return nil
 }
 
+// addField will add a single field to the current fields (e.g. a string or int).
 func (f *fields) addField(name string, value interface{}) {
 
 	// assert that field hasn't already been added
@@ -135,6 +163,8 @@ func (f *fields) addField(name string, value interface{}) {
 	f.byteReferences[name] = &[]byte{}
 }
 
+// getFieldReferences returns a map of all of the fields references (including any child
+// field references).
 func (f *fields) getFieldReferences() map[string]interface{} {
 
 	m := make(map[string]interface{})
@@ -155,6 +185,8 @@ func (f *fields) getFieldReferences() map[string]interface{} {
 	return m
 }
 
+// getByteReferences returns a map of all of the fields byte references (including any child
+// field references).
 func (f *fields) getByteReferences() map[string]*[]byte {
 
 	m := make(map[string]*[]byte)
@@ -171,10 +203,13 @@ func (f *fields) getByteReferences() map[string]*[]byte {
 	return m
 }
 
+// crawlFields will recursively iterate of each field of each fields and its children.
 func (f *fields) crawlFields(fn func(string, *fields) bool) {
 	f.crawlFieldsWithPrefix("", fn)
 }
 
+// crawlFields will recursively iterate of each field of each fields and its children
+// with the added context of the prefix field which is used to reference child fields.
 func (f *fields) crawlFieldsWithPrefix(prefix string, fn func(string, *fields) bool) bool {
 
 	// if cancel signalled, return and don't bother processing this field's children
@@ -195,6 +230,10 @@ func (f *fields) crawlFieldsWithPrefix(prefix string, fn func(string, *fields) b
 	return false
 }
 
+// buildReferenceName will put together a field reference name based on the provided
+// prefix, and the field's name, e.g.
+//
+// Prefix: pet, Name: animal := pet_animal
 func buildReferenceName(prefix, name string) string {
 
 	strs := make([]string, 0)
@@ -210,6 +249,7 @@ func buildReferenceName(prefix, name string) string {
 	return strings.Join(strs, "_")
 }
 
+// getHash will hash a fields entity so that it can be easily compared to another fields.
 func (f *fields) getHash() string {
 
 	raw := make([]byte, 0)
@@ -230,6 +270,8 @@ func (f *fields) getHash() string {
 	return string(h.Sum(nil))
 }
 
+// isNil will the incoming data to a fields (once it has been written to the byteReferences)
+// to see if the object that the fields represents will be nil.
 func (f *fields) isNil() bool {
 
 	for _, b := range f.byteReferences {
@@ -241,6 +283,8 @@ func (f *fields) isNil() bool {
 	return true
 }
 
+// isMatch will compare the provided fields (m) to the current fields to see if they are equal
+// in value, returning true if they are, and false otherwise.
 func (f *fields) isMatch(m *fields) bool {
 
 	if f.getHash() != m.getHash() {
@@ -262,22 +306,37 @@ func (f *fields) isMatch(m *fields) bool {
 	return true
 }
 
-func (f *fields) emptyNilFieldsFromSlice() {
+// emptyNilFields will nullify where possible any nil objects that are represented by the fields.
+func (f *fields) emptyNilFields() {
 
+	// if the fields values are nil
 	if f.isNil() {
-		f.container.empty()
+
+		// if the object belongs to a slice, empty that
+		if f.slice != nil {
+			f.slice.empty()
+		}
+
+		// empty the object represented by the fields, e.g. *int would be set to nil,
+		// or int would be set to 0.
+		rv := reflect.ValueOf(f.obj).Elem()
+		rv.Set(reflect.New(rv.Type()).Elem())
+
 		return
 	}
 
+	// repeat for all children
 	for _, child := range f.oneToOnes {
-		child.emptyNilFieldsFromSlice()
+		child.emptyNilFields()
 	}
 
 	for _, child := range f.oneToManys {
-		child.emptyNilFieldsFromSlice()
+		child.emptyNilFields()
 	}
 }
 
+// scan will attempt to apply the provided scan function to the fields object
+// by providing it with all the field references so that values can be written.
 func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
 
 	byteRefs := mapFieldsToColumns(columns, f.getByteReferences())
@@ -294,14 +353,42 @@ func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
 		return err
 	}
 
-	f.emptyNilFieldsFromSlice()
+	f.emptyNilFields()
 
 	return nil
 }
 
+// newFields is the fields constructor that will process the provided object, and use
+// reflection to map it out and maintain references to the object's fields.
 func newFields(obj interface{}) (*fields, error) {
 
+	// instantiate root of obj to create fields around
+	rva := instantiateAndReturnAll(obj)
+	rv := rva[0]
+
+	// if the obj is a slice, we must make obj represent an element of the slice instead of
+	// the slice itself as slices are the basis for one-to-many relationships
+	if rv.Kind() == reflect.Slice {
+
+		// get slice type, e.g. []*Example has a slice type of *Example
+		sliceType := reflect.TypeOf(rv.Interface()).Elem()
+
+		// create new element of sliceType
+		element := reflect.New(sliceType).Elem()
+
+		// instantiate element's root value
+		instantiateAndReturnRoot(element.Addr().Interface())
+
+		// append new element to slice
+		rv.Set(reflect.Append(rv, element))
+
+		// point object to newly created 0th element of slice
+		obj = rv.Index(0).Addr().Interface()
+	}
+
+	// create new fields
 	fields := &fields{
+		obj:               obj,
 		orderedFieldNames: make([]string, 0),
 		references:        make(map[string]interface{}),
 		byteReferences:    make(map[string]*[]byte),
@@ -309,8 +396,13 @@ func newFields(obj interface{}) (*fields, error) {
 		oneToManys:        make(map[string]*fields),
 	}
 
-	fields.container = newFieldsContainer(obj, fields)
+	// if slice, set the fields slice to be the slice so we can append to it during
+	// fields.merge
+	if rv.Kind() == reflect.Slice {
+		fields.slice = newFieldsSlice(rv.Addr().Interface(), fields)
+	}
 
+	// initialise the newly created fields around the obj being pointed to
 	err := initialiseFields("", obj, fields)
 	if err != nil {
 		return nil, err
@@ -319,6 +411,8 @@ func newFields(obj interface{}) (*fields, error) {
 	return fields, nil
 }
 
+// initialiseFields uses reflection to map it out and maintain references to the object's
+// fields.
 func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 
 	rva := instantiateAndReturnAll(obj)
@@ -335,23 +429,7 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 
 	// if type is slice, add 1 element to it to store values
 	if rv.Kind() == reflect.Slice {
-
-		fields.container.containerRef = rv.Addr().Interface()
-
-		// get slice type, e.g. []*Example has a slice type of *Example
-		sliceType := reflect.TypeOf(rv.Interface()).Elem()
-
-		// create new element of sliceType
-		element := reflect.New(sliceType).Elem()
-
-		// instantiate element's root value
-		instantiateAndReturnRoot(element.Addr().Interface())
-
-		// append new element to slice
-		rv.Set(reflect.Append(rv, element))
-
-		// add child and evaluate it
-		return initialiseFields("", rv.Index(0).Addr().Interface(), fields)
+		panic("multi-dimensional slices are not supported")
 	}
 
 	// if time.Time
@@ -393,7 +471,7 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 			if _, ok := fieldValueRoot.Interface().(time.Time); !ok {
 
 				// evaluate as part of this struct (as one-to-one relationship)
-				fields.addNewOneToOne(fieldName, fieldValueAll[len(fieldValueAll)-1].Addr().Interface())
+				fields.addNewChild(fieldName, fieldValueAll[len(fieldValueAll)-1].Addr().Interface())
 				continue
 			}
 		}
@@ -402,7 +480,7 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 		if fieldValueRoot.Kind() == reflect.Slice {
 
 			// evaluate with pointer to new instance (as child because one-to-many relationship)
-			err := fields.addNewOneToMany(fieldName, fieldValueRoot.Addr().Interface())
+			err := fields.addNewChild(fieldName, fieldValueRoot.Addr().Interface())
 			if err != nil {
 				return err
 			}
@@ -436,7 +514,7 @@ func (f *fields) merge(m *fields) error {
 	var existing *fields
 
 	// if element doesn't belong to a slice
-	if !f.container.isSlice() {
+	if f.slice == nil {
 
 		// and the provided element doesn't match the current element
 		// then fail merge as they are different so oneToManys cannot be merged
@@ -452,11 +530,11 @@ func (f *fields) merge(m *fields) error {
 
 		// else, if container isn't nil, set existing to be any existing entity with
 		// same hash
-		existing = f.container.getExisting(m)
+		existing = f.slice.getExisting(m)
 
 		// if *fields doesn't already exist, add it as new
 		if existing == nil {
-			f.container.append(m)
+			f.slice.append(m)
 			return nil
 		}
 	}

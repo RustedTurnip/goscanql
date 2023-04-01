@@ -21,7 +21,7 @@ var (
 func init() {
 	flag.StringVar(&dbUser, "db-user", "postgres", "database user name")
 	flag.StringVar(&dbPass, "db-pass", "postgres", "database user password")
-	flag.StringVar(&dbHost, "db-host", "goscanqldb", "database host")
+	flag.StringVar(&dbHost, "db-host", "localhost", "database host")
 	flag.StringVar(&dbName, "db-name", "goscanql", "database name")
 	flag.IntVar(&dbPort, "db-port", 5432, "database port")
 }

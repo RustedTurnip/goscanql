@@ -340,12 +340,13 @@ func newFields(obj interface{}) (*fields, error) {
 
 	// create new fields
 	fields := &fields{
-		obj:               obj,
-		orderedFieldNames: make([]string, 0),
-		references:        make(map[string]interface{}),
-		byteReferences:    make(map[string]*[]byte),
-		oneToOnes:         make(map[string]*fields),
-		oneToManys:        make(map[string]*fields),
+		obj:                  obj,
+		orderedFieldNames:    make([]string, 0),
+		orderedOneToOneNames: make([]string, 0),
+		references:           make(map[string]interface{}),
+		byteReferences:       make(map[string]*[]byte),
+		oneToOnes:            make(map[string]*fields),
+		oneToManys:           make(map[string]*fields),
 	}
 
 	// if slice, set the fields slice to be the slice so we can append to it during

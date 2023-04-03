@@ -339,7 +339,7 @@ func newFields(obj interface{}) (*fields, error) {
 	}
 
 	// initialise the newly created fields around the obj being pointed to
-	err := initialiseFields("", obj, fields)
+	err := fields.initialise("")
 	if err != nil {
 		return nil, err
 	}
@@ -347,11 +347,11 @@ func newFields(obj interface{}) (*fields, error) {
 	return fields, nil
 }
 
-// initialiseFields uses reflection to map it out and maintain references to the object's
+// initialise uses reflection to map it out and maintain references to the object's
 // fields.
-func initialiseFields(prefix string, obj interface{}, fields *fields) error {
+func (f *fields) initialise(prefix string) error {
 
-	rva := instantiateAndReturnAll(obj)
+	rva := instantiateAndReturnAll(f.obj)
 
 	rv := rva[0]
 	t := rv.Type()
@@ -359,7 +359,7 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 	// if type implements the Scanner interface, add it as is
 	iScanner := reflect.TypeOf((*sql.Scanner)(nil)).Elem()
 	if rv.Type().Implements(iScanner) {
-		fields.addField(prefix, rv.Addr().Interface())
+		f.addField(prefix, rv.Addr().Interface())
 		return nil
 	}
 
@@ -370,13 +370,13 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 
 	// if time.Time
 	if _, ok := rv.Interface().(time.Time); ok {
-		fields.addField(prefix, rv.Addr().Interface())
+		f.addField(prefix, rv.Addr().Interface())
 		return nil
 	}
 
 	// if primitive
 	if rv.Kind() != reflect.Struct {
-		fields.addField(prefix, rv.Addr().Interface())
+		f.addField(prefix, rv.Addr().Interface())
 		return nil
 	}
 
@@ -407,7 +407,7 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 			if _, ok := fieldValueRoot.Interface().(time.Time); !ok {
 
 				// evaluate as part of this struct (as one-to-one relationship)
-				fields.addNewChild(fieldName, fieldValueAll[len(fieldValueAll)-1].Addr().Interface())
+				f.addNewChild(fieldName, fieldValueAll[len(fieldValueAll)-1].Addr().Interface())
 				continue
 			}
 		}
@@ -416,7 +416,7 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 		if fieldValueRoot.Kind() == reflect.Slice {
 
 			// evaluate with pointer to new instance (as child because one-to-many relationship)
-			err := fields.addNewChild(fieldName, fieldValueRoot.Addr().Interface())
+			err := f.addNewChild(fieldName, fieldValueRoot.Addr().Interface())
 			if err != nil {
 				return err
 			}
@@ -425,7 +425,7 @@ func initialiseFields(prefix string, obj interface{}, fields *fields) error {
 		}
 
 		// add field to map
-		fields.addField(fieldName, rv.Field(i).Addr().Interface())
+		f.addField(fieldName, rv.Field(i).Addr().Interface())
 	}
 
 	return nil

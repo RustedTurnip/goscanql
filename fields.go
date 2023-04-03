@@ -82,6 +82,7 @@ func (f *fields) addNewChild(name string, obj interface{}) error {
 	}
 
 	f.oneToOnes[name] = child
+	f.orderedOneToOneNames = append(f.orderedOneToOneNames, name)
 	return nil
 }
 
@@ -188,7 +189,20 @@ func buildReferenceName(prefix, name string) string {
 // getHash will hash a fields entity so that it can be easily compared to another fields.
 func (f *fields) getHash() string {
 
-	raw := make([]byte, 0)
+	raw := f.getBytePrint()
+
+	// hash fields to create unique id for struct
+	h := sha1.New()
+	h.Write(raw)
+
+	return string(h.Sum(nil))
+}
+
+// getBytePrint will return a "fingerprint" of the current fields entity and it's one-to-one
+// children as an array of bytes.
+func (f *fields) getBytePrint() []byte {
+
+	print := make([]byte, 0)
 
 	for _, key := range f.orderedFieldNames {
 
@@ -196,14 +210,16 @@ func (f *fields) getHash() string {
 
 		strValue := fmt.Sprintf("%s%v", key, reflect.ValueOf(value).Elem().Interface())
 
-		raw = append(raw, []byte(strValue)...)
+		print = append(print, []byte(strValue)...)
 	}
 
-	// hash fields to create unique id for struct
-	h := sha1.New()
-	h.Write(raw)
+	for _, key := range f.orderedOneToOneNames {
 
-	return string(h.Sum(nil))
+		child := f.oneToOnes[key]
+		print = append(print, child.getBytePrint()...)
+	}
+
+	return print
 }
 
 // isNil will the incoming data to a fields (once it has been written to the byteReferences)

@@ -438,8 +438,10 @@ func TestAddField(t *testing.T) {
 
 		err := test.fields.addField(test.inputName, test.inputObj)
 
+		// assert that error is expected
 		assert.Equalf(t, test.expectedErr, err, "")
 
+		// continue to next if nil as following asserts are nullified
 		if err != nil {
 			continue
 		}

@@ -454,9 +454,8 @@ func TestAddField(t *testing.T) {
 	}
 }
 
-func TestGetFieldReferences(t *testing.T) {
-
-	fields := &fields{
+var (
+	referenceTestExample = &fields{
 		references: map[string]interface{}{
 			"foo": referenceField(0),
 			"bar": referenceField(""),
@@ -504,18 +503,46 @@ func TestGetFieldReferences(t *testing.T) {
 			},
 		},
 	}
+)
+
+func TestGetFieldReferences(t *testing.T) {
 
 	expected := map[string]interface{}{
-		"foo":                    fields.references["foo"],
-		"bar":                    fields.references["bar"],
-		"single_child_time":      fields.oneToOnes["single_child"].references["time"],
-		"many_children_many_foo": fields.oneToManys["many_children"].references["many_foo"],
-		"many_children_many_bar": fields.oneToManys["many_children"].references["many_bar"],
+		"foo":                    referenceTestExample.references["foo"],
+		"bar":                    referenceTestExample.references["bar"],
+		"single_child_time":      referenceTestExample.oneToOnes["single_child"].references["time"],
+		"many_children_many_foo": referenceTestExample.oneToManys["many_children"].references["many_foo"],
+		"many_children_many_bar": referenceTestExample.oneToManys["many_children"].references["many_bar"],
 	}
 
 	msg := "Get Field References: failed"
 
-	result := fields.getFieldReferences()
+	result := referenceTestExample.getFieldReferences()
+
+	// assert that the result matches expected (by value)
+	assert.Equalf(t, expected, result, msg)
+
+	// assert that the result matches expected (by reference)
+	for k, v := range expected {
+		assert.Samef(t, v, result[k], msg)
+	}
+}
+
+func TestGetByteReferences(t *testing.T) {
+
+	expected := map[string]*[]byte{
+		"foo":                    referenceTestExample.byteReferences["foo"],
+		"bar":                    referenceTestExample.byteReferences["bar"],
+		"single_child_time":      referenceTestExample.oneToOnes["single_child"].byteReferences["time"],
+		"null_child_time":        referenceTestExample.oneToOnes["null_child"].byteReferences["time"],
+		"many_children_many_foo": referenceTestExample.oneToManys["many_children"].byteReferences["many_foo"],
+		"many_children_many_bar": referenceTestExample.oneToManys["many_children"].byteReferences["many_bar"],
+		"null_children_time":     referenceTestExample.oneToManys["null_children"].byteReferences["time"],
+	}
+
+	msg := "Get Byte References: failed"
+
+	result := referenceTestExample.getByteReferences()
 
 	// assert that the result matches expected (by value)
 	assert.Equalf(t, expected, result, msg)

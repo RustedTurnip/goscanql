@@ -616,3 +616,43 @@ func TestCrawlFields(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildReferenceName(t *testing.T) {
+
+	tests := []struct {
+		name        string
+		inputPrefix string
+		inputName   string
+		expected    string
+	}{
+		{
+			name:        "Build Reference Name With Prefix and Name",
+			inputPrefix: "prefix",
+			inputName:   "field_name",
+			expected:    "prefix_field_name",
+		},
+		{
+			name:        "Build Reference Name With Just Prefix",
+			inputPrefix: "prefix",
+			inputName:   "",
+			expected:    "prefix",
+		},
+		{
+			name:        "Build Reference Name With Just Name",
+			inputPrefix: "",
+			inputName:   "field_name",
+			expected:    "field_name",
+		},
+		{
+			name:        "Build Reference Name Without Input",
+			inputPrefix: "",
+			inputName:   "",
+			expected:    "",
+		},
+	}
+
+	for _, test := range tests {
+		msg := fmt.Sprintf("%s: failed", test.name)
+		assert.Equalf(t, test.expected, buildReferenceName(test.inputPrefix, test.inputName), msg)
+	}
+}

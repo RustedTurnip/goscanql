@@ -453,3 +453,75 @@ func TestAddField(t *testing.T) {
 		assert.Samef(t, test.inputObj, test.fields.references[test.inputName], "")
 	}
 }
+
+func TestGetFieldReferences(t *testing.T) {
+
+	fields := &fields{
+		references: map[string]interface{}{
+			"foo": referenceField(0),
+			"bar": referenceField(""),
+		},
+		byteReferences: map[string]*[]byte{
+			"foo": {' '},
+			"bar": {' '},
+		},
+		oneToOnes: map[string]*fields{
+			"single_child": {
+				references: map[string]interface{}{
+					"time": referenceField(time.Time{}),
+				},
+				byteReferences: map[string]*[]byte{
+					"time": {' '},
+				},
+			},
+			"null_child": {
+				references: map[string]interface{}{
+					"time": referenceField(time.Time{}),
+				},
+				byteReferences: map[string]*[]byte{
+					"time": {}, // as all byteReferences for this *fields are empty, it is considered nil
+				},
+			},
+		},
+		oneToManys: map[string]*fields{
+			"many_children": {
+				references: map[string]interface{}{
+					"many_foo": referenceField(0),
+					"many_bar": referenceField(""),
+				},
+				byteReferences: map[string]*[]byte{
+					"many_foo": {' '},
+					"many_bar": {' '},
+				},
+			},
+			"null_children": {
+				references: map[string]interface{}{
+					"foo": referenceField(0),
+				},
+				byteReferences: map[string]*[]byte{
+					"time": {}, // as all byteReferences for this *fields are empty, it is considered nil
+				},
+			},
+		},
+	}
+
+	expected := map[string]interface{}{
+		"foo":                    fields.references["foo"],
+		"bar":                    fields.references["bar"],
+		"single_child_time":      fields.oneToOnes["single_child"].references["time"],
+		"many_children_many_foo": fields.oneToManys["many_children"].references["many_foo"],
+		"many_children_many_bar": fields.oneToManys["many_children"].references["many_bar"],
+	}
+
+	msg := "Get Field References: failed"
+
+	result := fields.getFieldReferences()
+
+	// assert that the result matches expected (by value)
+	assert.Equalf(t, expected, result, msg)
+
+	// assert that the result matches expected (by reference)
+	for k, v := range expected {
+		assert.Samef(t, v, result[k], msg)
+	}
+}

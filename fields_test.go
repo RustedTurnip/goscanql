@@ -750,3 +750,150 @@ func TestIsNil(t *testing.T) {
 		assert.Equalf(t, test.expected, test.fields.isNil(), "")
 	}
 }
+
+func TestIsMatch(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		fields   *fields
+		comparee *fields
+		expected bool
+	}{
+		{
+			name: "IsMatch Equal Fields",
+			fields: &fields{
+				orderedFieldNames: []string{
+					"foo",
+				},
+				references: map[string]interface{}{
+					"foo": referenceField("hello!"),
+				},
+			},
+			comparee: &fields{
+				orderedFieldNames: []string{
+					"foo",
+				},
+				references: map[string]interface{}{
+					"foo": referenceField("hello!"),
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "IsMatch Equal Fields and One-to-One Children",
+			fields: &fields{
+				orderedFieldNames: []string{
+					"bar",
+				},
+				references: map[string]interface{}{
+					"bar": referenceField(63),
+				},
+				orderedOneToOneNames: []string{
+					"foobar",
+				},
+				oneToOnes: map[string]*fields{
+					"foobar": {
+						orderedFieldNames: []string{
+							"foo",
+						},
+						references: map[string]interface{}{
+							"foo": &[]byte{1, 2, 3},
+						},
+					},
+				},
+			},
+			comparee: &fields{
+				orderedFieldNames: []string{
+					"bar",
+				},
+				references: map[string]interface{}{
+					"bar": referenceField(63),
+				},
+				orderedOneToOneNames: []string{
+					"foobar",
+				},
+				oneToOnes: map[string]*fields{
+					"foobar": {
+						orderedFieldNames: []string{
+							"foo",
+						},
+						references: map[string]interface{}{
+							"foo": &[]byte{1, 2, 3},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "IsMatch Not Equal Fields",
+			fields: &fields{
+				orderedFieldNames: []string{
+					"foo",
+				},
+				references: map[string]interface{}{
+					"foo": referenceField("hello!"),
+				},
+			},
+			comparee: &fields{
+				orderedFieldNames: []string{
+					"foo",
+				},
+				references: map[string]interface{}{
+					"foo": referenceField("hello!!"),
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "IsMatch Not Equal Fields and One-to-One Children",
+			fields: &fields{
+				orderedFieldNames: []string{
+					"bar",
+				},
+				references: map[string]interface{}{
+					"bar": referenceField(63),
+				},
+				orderedOneToOneNames: []string{
+					"foobar",
+				},
+				oneToOnes: map[string]*fields{
+					"foobar": {
+						orderedFieldNames: []string{
+							"foo",
+						},
+						references: map[string]interface{}{
+							"foo": &[]byte{1, 2, 3},
+						},
+					},
+				},
+			},
+			comparee: &fields{
+				orderedFieldNames: []string{
+					"bar",
+				},
+				references: map[string]interface{}{
+					"bar": referenceField(63),
+				},
+				orderedOneToOneNames: []string{
+					"foobar",
+				},
+				oneToOnes: map[string]*fields{
+					"foobar": {
+						orderedFieldNames: []string{
+							"foo",
+						},
+						references: map[string]interface{}{
+							"foo": &[]byte{1, 2, 4},
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+	}
+
+	for _, test := range tests {
+		assert.Equalf(t, test.expected, test.fields.isMatch(test.comparee), "")
+	}
+}

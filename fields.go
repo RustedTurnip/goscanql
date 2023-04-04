@@ -245,18 +245,6 @@ func (f *fields) isMatch(m *fields) bool {
 		return false
 	}
 
-	for name, child := range f.oneToOnes {
-
-		mChild, ok := m.oneToOnes[name]
-		if !ok {
-			return false
-		}
-
-		if !child.isMatch(mChild) {
-			return false
-		}
-	}
-
 	return true
 }
 

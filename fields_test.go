@@ -1,7 +1,9 @@
 package goscanql
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -128,4 +130,112 @@ func TestInitialiseFields(t *testing.T) {
 	assert.Samef(t, &objExample.Children[0].Bar, subject.oneToManys["children"].references["bar"], "")
 	assert.Samef(t, &(*objExample.ChildrenPointer)[0].Foo, subject.oneToManys["children_pointer"].references["foo"], "")
 	assert.Samef(t, &(*objExample.ChildrenPointer)[0].Bar, subject.oneToManys["children_pointer"].references["bar"], "")
+}
+
+func TestNewFields(t *testing.T) {
+
+	type testExample struct {
+		Foo int    `goscanql:"foo"`
+		Bar string `goscanql:"bar"`
+	}
+
+	testInputs := map[string]interface{}{
+		"Simple Non-Slice Input": &testExample{},
+		"Simple Slice Input": &[]*testExample{
+			{},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		expected    *fields
+		expectedErr error
+	}{
+		{
+			name: "Simple Non-Slice Input",
+			expected: &fields{
+				obj: testInputs["Simple Non-Slice Input"].(*testExample),
+				orderedFieldNames: []string{
+					"foo",
+					"bar",
+				},
+				orderedOneToOneNames: []string{},
+				references: map[string]interface{}{
+					"foo": referenceField(0),
+					"bar": referenceField(""),
+				},
+				byteReferences: map[string]*[]byte{
+					"foo": {},
+					"bar": {},
+				},
+				oneToOnes:  map[string]*fields{},
+				oneToManys: map[string]*fields{},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "Simple Slice Input",
+			expected: &fields{
+				obj: &(*testInputs["Simple Slice Input"].(*[]*testExample))[0],
+				slice: &fieldsSlice{
+					sliceRef: testInputs["Simple Slice Input"],
+				},
+				orderedFieldNames: []string{
+					"foo",
+					"bar",
+				},
+				orderedOneToOneNames: []string{},
+				references: map[string]interface{}{
+					"foo": referenceField(0),
+					"bar": referenceField(""),
+				},
+				byteReferences: map[string]*[]byte{
+					"foo": {},
+					"bar": {},
+				},
+				oneToOnes:  map[string]*fields{},
+				oneToManys: map[string]*fields{},
+			},
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+
+		msg := fmt.Sprintf("%s: failed", test.name)
+
+		// post-process expected *fields where slice is supposed to be instantiated (because test cannot)
+		// reference itself
+		if test.expected.slice != nil {
+			test.expected.slice.fields = append(test.expected.slice.fields, test.expected)
+		}
+
+		// execute sut
+		result, err := newFields(testInputs[test.name])
+
+		// assert value equality between expected and result
+		assert.Equalf(t, test.expected, result, msg)
+		assert.Equalf(t, test.expectedErr, err, msg)
+
+		// if test errored, continue to next as following assertions are nullified
+		if err != nil {
+			continue
+		}
+
+		// assert pointer equality to ensure that the original inputs are still referenced by the
+		// resulting fields
+		if test.expected.slice != nil {
+
+			// if slice, asser that the sliceRef points to the original input
+			assert.Samef(t, testInputs[test.name], result.slice.sliceRef, msg)
+
+			// and that the fields obj points to the first entry of the slice
+			assert.Samef(t, reflect.ValueOf(testInputs[test.name]).Elem().Index(0).Addr().Interface(), result.obj, msg)
+
+		} else {
+
+			// else if not slice, assert that fields obj points directly to input
+			assert.Samef(t, testInputs[test.name], result.obj, msg)
+		}
+	}
 }

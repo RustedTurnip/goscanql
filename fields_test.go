@@ -371,3 +371,83 @@ func TestAddNewChild(t *testing.T) {
 		}
 	}
 }
+
+func TestAddField(t *testing.T) {
+
+	tests := []struct {
+		name        string
+		inputName   string
+		inputObj    interface{}
+		fields      *fields
+		expected    *fields
+		expectedErr error
+	}{
+		{
+			name:      "Add Single Field Without Collision",
+			inputName: "field_name",
+			inputObj:  referenceField(0),
+			fields: &fields{
+				orderedFieldNames: []string{},
+				references:        map[string]interface{}{},
+				byteReferences:    map[string]*[]byte{},
+			},
+			expected: &fields{
+				orderedFieldNames: []string{
+					"field_name",
+				},
+				references: map[string]interface{}{
+					"field_name": referenceField(0),
+				},
+				byteReferences: map[string]*[]byte{
+					"field_name": {},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name:      "Add Single Field With Collision",
+			inputName: "field_name",
+			inputObj:  referenceField(0),
+			fields: &fields{
+				orderedFieldNames: []string{
+					"field_name",
+				},
+				references: map[string]interface{}{
+					"field_name": referenceField(0),
+				},
+				byteReferences: map[string]*[]byte{
+					"field_name": {},
+				},
+			},
+			expected: &fields{
+				orderedFieldNames: []string{
+					"field_name",
+				},
+				references: map[string]interface{}{
+					"field_name": referenceField(0),
+				},
+				byteReferences: map[string]*[]byte{
+					"field_name": {},
+				},
+			},
+			expectedErr: fmt.Errorf("field with name \"field_name\" already added"),
+		},
+	}
+
+	for _, test := range tests {
+
+		err := test.fields.addField(test.inputName, test.inputObj)
+
+		assert.Equalf(t, test.expectedErr, err, "")
+
+		if err != nil {
+			continue
+		}
+
+		// assert that the resulting struct is the same (value-wise) as the expected fields
+		assert.Equalf(t, test.expected, test.fields, "")
+
+		// assert that the added field points to the exact same object as originally provided
+		assert.Samef(t, test.inputObj, test.fields.references[test.inputName], "")
+	}
+}

@@ -239,3 +239,106 @@ func TestNewFields(t *testing.T) {
 		}
 	}
 }
+
+func TestAddNewChild(t *testing.T) {
+
+	type relationship int
+
+	const (
+		oneRelationship relationship = iota
+		manyRelationship
+	)
+
+	tests := []struct {
+		name                 string
+		inputName            string
+		inputObj             interface{}
+		existingOneChildren  map[string]*fields
+		existingManyChildren map[string]*fields
+		expectedRelationship relationship
+		expectedErr          error
+	}{
+		{
+			name:                 "Add New One-to-One Child Struct",
+			inputName:            "child",
+			inputObj:             &struct{}{},
+			expectedRelationship: oneRelationship,
+			expectedErr:          nil,
+		},
+		{
+			name:                 "Add New One-to-Many Child Struct",
+			inputName:            "child",
+			inputObj:             &[]*struct{}{},
+			expectedRelationship: manyRelationship,
+			expectedErr:          nil,
+		},
+		{
+			name:      "Add New One-to-One Child Struct WIth Name Collision",
+			inputName: "arbitrary_name",
+			inputObj:  &struct{}{},
+			existingOneChildren: map[string]*fields{
+				"arbitrary_name": nil,
+			},
+			expectedRelationship: oneRelationship,
+			expectedErr:          fmt.Errorf("child already exists with name \"%s\"", "arbitrary_name"),
+		},
+		{
+			name:      "Add New One-to-Many Child Struct WIth Name Collision",
+			inputName: "arbitrary_name_many",
+			inputObj:  &struct{}{},
+			existingOneChildren: map[string]*fields{
+				"arbitrary_name_many": nil,
+			},
+			expectedRelationship: oneRelationship,
+			expectedErr:          fmt.Errorf("child already exists with name \"%s\"", "arbitrary_name_many"),
+		},
+	}
+
+	for _, test := range tests {
+
+		msg := fmt.Sprintf("%s: failed", test.name)
+
+		// initialise fields
+		f := &fields{
+			oneToOnes:  map[string]*fields{},
+			oneToManys: map[string]*fields{},
+		}
+
+		// initialise children if test requires
+		if test.existingOneChildren != nil {
+			f.oneToOnes = test.existingOneChildren
+		}
+
+		if test.existingManyChildren != nil {
+			f.oneToManys = test.existingManyChildren
+		}
+
+		// execute sut
+		err := f.addNewChild(test.inputName, test.inputObj)
+
+		// assert that test returned expected error
+		assert.Equalf(t, test.expectedErr, err, msg)
+
+		// if error returned, continue as remaining asserts are nullified
+		if err != nil {
+			continue
+		}
+
+		// assess result based on expected relationship
+		if test.expectedRelationship == oneRelationship {
+
+			// check that the new field has been added to one-to-one children
+			assert.Containsf(t, f.oneToOnes, test.inputName, msg)
+			// and that it hasn't been added to the one-to-manys children
+			assert.NotContainsf(t, f.oneToManys, test.inputName, msg)
+
+		} else {
+
+			// check that the new field has been added to one-to-manys children
+			assert.Containsf(t, f.oneToManys, test.inputName, msg)
+			// and that it hasn't been added to the one-to-ones children
+			assert.NotContainsf(t, f.oneToOnes, test.inputName, msg)
+
+		}
+	}
+}

@@ -191,7 +191,7 @@ func buildReferenceName(prefix, name string) string {
 // getHash will hash a fields entity so that it can be easily compared to another fields.
 func (f *fields) getHash() string {
 
-	raw := f.getBytePrint()
+	raw := f.getBytePrint("")
 
 	// hash fields to create unique id for struct
 	h := sha1.New()
@@ -202,7 +202,7 @@ func (f *fields) getHash() string {
 
 // getBytePrint will return a "fingerprint" of the current fields entity and it's one-to-one
 // children as an array of bytes.
-func (f *fields) getBytePrint() []byte {
+func (f *fields) getBytePrint(prefix string) []byte {
 
 	print := make([]byte, 0)
 
@@ -210,7 +210,7 @@ func (f *fields) getBytePrint() []byte {
 
 		value := f.references[key]
 
-		strValue := fmt.Sprintf("%s%v", key, reflect.ValueOf(value).Elem().Interface())
+		strValue := fmt.Sprintf("{%s:%#v}", buildReferenceName(prefix, key), reflect.ValueOf(value).Elem().Interface())
 
 		print = append(print, []byte(strValue)...)
 	}
@@ -218,7 +218,7 @@ func (f *fields) getBytePrint() []byte {
 	for _, key := range f.orderedOneToOneNames {
 
 		child := f.oneToOnes[key]
-		print = append(print, child.getBytePrint()...)
+		print = append(print, child.getBytePrint(key)...)
 	}
 
 	return print
@@ -243,18 +243,6 @@ func (f *fields) isMatch(m *fields) bool {
 
 	if f.getHash() != m.getHash() {
 		return false
-	}
-
-	for name, child := range f.oneToOnes {
-
-		mChild, ok := m.oneToOnes[name]
-		if !ok {
-			return false
-		}
-
-		if !child.isMatch(mChild) {
-			return false
-		}
 	}
 
 	return true

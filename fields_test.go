@@ -552,3 +552,67 @@ func TestGetByteReferences(t *testing.T) {
 		assert.Samef(t, v, result[k], msg)
 	}
 }
+
+func TestCrawlFields(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		fn       func(map[string]*fields) func(string, *fields) bool
+		expected map[string]*fields
+	}{
+		{
+			name: "Crawl All Fields",
+			fn: func(result map[string]*fields) func(string, *fields) bool {
+				return func(prefix string, f *fields) bool {
+					result[prefix] = f
+					return false
+				}
+			},
+			expected: map[string]*fields{
+				"":              referenceTestExample,
+				"single_child":  referenceTestExample.oneToOnes["single_child"],
+				"null_child":    referenceTestExample.oneToOnes["null_child"],
+				"many_children": referenceTestExample.oneToManys["many_children"],
+				"null_children": referenceTestExample.oneToManys["null_children"],
+			},
+		},
+		{
+			name: "Crawl All Fields With Early Exit",
+			fn: func(result map[string]*fields) func(string, *fields) bool {
+				return func(prefix string, f *fields) bool {
+
+					result[prefix] = f
+
+					// early exit
+					if prefix == "" {
+						return true
+					}
+
+					return false
+				}
+			},
+			expected: map[string]*fields{
+				"": referenceTestExample,
+			},
+		},
+	}
+
+	for _, test := range tests {
+
+		msg := fmt.Sprintf("%s: failed", test.name)
+
+		// result for reached fields
+		result := map[string]*fields{}
+
+		// execute sut
+		referenceTestExample.crawlFields(test.fn(result))
+
+		// assert that result and expected match by value
+		assert.Equalf(t, test.expected, result, msg)
+
+		// assert that result and expected match by reference
+		for k, v := range test.expected {
+			assert.Samef(t, v, result[k], msg)
+		}
+	}
+}

@@ -87,17 +87,19 @@ func (f *fields) addNewChild(name string, obj interface{}) error {
 }
 
 // addField will add a single field to the current fields (e.g. a string or int).
-func (f *fields) addField(name string, value interface{}) {
+func (f *fields) addField(name string, value interface{}) error {
 
 	// assert that field hasn't already been added
 	if _, ok := f.references[name]; ok {
-		panic(fmt.Errorf("field with name \"%s\" already added", name))
+		return fmt.Errorf("field with name \"%s\" already added", name)
 	}
 
 	// add field to this instance
 	f.orderedFieldNames = append(f.orderedFieldNames, name)
 	f.references[name] = value
 	f.byteReferences[name] = &[]byte{}
+
+	return nil
 }
 
 // getFieldReferences returns a map of all of the fields references (including any child
@@ -376,7 +378,12 @@ func (f *fields) initialise(prefix string) error {
 	// if type implements the Scanner interface, add it as is
 	iScanner := reflect.TypeOf((*sql.Scanner)(nil)).Elem()
 	if rv.Type().Implements(iScanner) {
-		f.addField(prefix, rv.Addr().Interface())
+
+		err := f.addField(prefix, rv.Addr().Interface())
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -387,13 +394,23 @@ func (f *fields) initialise(prefix string) error {
 
 	// if time.Time
 	if _, ok := rv.Interface().(time.Time); ok {
-		f.addField(prefix, rv.Addr().Interface())
+
+		err := f.addField(prefix, rv.Addr().Interface())
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
 	// if primitive
 	if rv.Kind() != reflect.Struct {
-		f.addField(prefix, rv.Addr().Interface())
+
+		err := f.addField(prefix, rv.Addr().Interface())
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -424,7 +441,11 @@ func (f *fields) initialise(prefix string) error {
 			if _, ok := fieldValueRoot.Interface().(time.Time); !ok {
 
 				// evaluate as part of this struct (as one-to-one relationship)
-				f.addNewChild(fieldName, fieldValueAll[len(fieldValueAll)-1].Addr().Interface())
+				err := f.addNewChild(fieldName, fieldValueAll[len(fieldValueAll)-1].Addr().Interface())
+				if err != nil {
+					return err
+				}
+
 				continue
 			}
 		}
@@ -442,7 +463,10 @@ func (f *fields) initialise(prefix string) error {
 		}
 
 		// add field to map
-		f.addField(fieldName, rv.Field(i).Addr().Interface())
+		err := f.addField(fieldName, rv.Field(i).Addr().Interface())
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

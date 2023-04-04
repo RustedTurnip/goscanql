@@ -456,24 +456,38 @@ func TestAddField(t *testing.T) {
 
 var (
 	referenceTestExample = &fields{
+		orderedFieldNames: []string{
+			"foo",
+			"bar",
+		},
+		orderedOneToOneNames: []string{
+			"single_child",
+			"null_child",
+		},
 		references: map[string]interface{}{
-			"foo": referenceField(0),
-			"bar": referenceField(""),
+			"foo": referenceField(36),
+			"bar": referenceField("Hello, World!"),
 		},
 		byteReferences: map[string]*[]byte{
-			"foo": {' '},
-			"bar": {' '},
+			"foo": {'3', '6'},
+			"bar": {'H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!'},
 		},
 		oneToOnes: map[string]*fields{
 			"single_child": {
+				orderedFieldNames: []string{
+					"time",
+				},
 				references: map[string]interface{}{
 					"time": referenceField(time.Time{}),
 				},
 				byteReferences: map[string]*[]byte{
-					"time": {' '},
+					"time": {'1', '9', '7', '0', '-', '0', '1', '-', '0', '1', 'T', '0', '0', ':', '0', '0', ':', '0', '0'},
 				},
 			},
 			"null_child": {
+				orderedFieldNames: []string{
+					"time",
+				},
 				references: map[string]interface{}{
 					"time": referenceField(time.Time{}),
 				},
@@ -484,21 +498,28 @@ var (
 		},
 		oneToManys: map[string]*fields{
 			"many_children": {
+				orderedFieldNames: []string{
+					"many_foo",
+					"many_bar",
+				},
 				references: map[string]interface{}{
-					"many_foo": referenceField(0),
-					"many_bar": referenceField(""),
+					"many_foo": referenceField(72),
+					"many_bar": referenceField("Hello, worlds!"),
 				},
 				byteReferences: map[string]*[]byte{
-					"many_foo": {' '},
-					"many_bar": {' '},
+					"many_foo": {'7', '2'},
+					"many_bar": {'H', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd', 's', '!'},
 				},
 			},
 			"null_children": {
+				orderedFieldNames: []string{
+					"foo",
+				},
 				references: map[string]interface{}{
 					"foo": referenceField(0),
 				},
 				byteReferences: map[string]*[]byte{
-					"time": {}, // as all byteReferences for this *fields are empty, it is considered nil
+					"foo": {}, // as all byteReferences for this *fields are empty, it is considered nil
 				},
 			},
 		},
@@ -537,7 +558,7 @@ func TestGetByteReferences(t *testing.T) {
 		"null_child_time":        referenceTestExample.oneToOnes["null_child"].byteReferences["time"],
 		"many_children_many_foo": referenceTestExample.oneToManys["many_children"].byteReferences["many_foo"],
 		"many_children_many_bar": referenceTestExample.oneToManys["many_children"].byteReferences["many_bar"],
-		"null_children_time":     referenceTestExample.oneToManys["null_children"].byteReferences["time"],
+		"null_children_foo":      referenceTestExample.oneToManys["null_children"].byteReferences["foo"],
 	}
 
 	msg := "Get Byte References: failed"
@@ -655,4 +676,14 @@ func TestBuildReferenceName(t *testing.T) {
 		msg := fmt.Sprintf("%s: failed", test.name)
 		assert.Equalf(t, test.expected, buildReferenceName(test.inputPrefix, test.inputName), msg)
 	}
+}
+
+func TestGetBytePrint(t *testing.T) {
+	expectedBytePrint := []byte(`{foo:36}{bar:"Hello, World!"}{single_child_time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)}{null_child_time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)}`)
+	assert.Equalf(t, expectedBytePrint, referenceTestExample.getBytePrint(""), "Get Byte Print Test: failed")
+}
+
+func TestGetHash(t *testing.T) {
+	expectedHash := []byte{112, 202, 6, 16, 105, 254, 127, 233, 195, 197, 100, 39, 173, 181, 27, 194, 240, 234, 102, 38}
+	assert.Equalf(t, string(expectedHash), referenceTestExample.getHash(), "Get Hash Test: failed")
 }

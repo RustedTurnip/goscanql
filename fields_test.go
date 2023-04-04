@@ -687,3 +687,66 @@ func TestGetHash(t *testing.T) {
 	expectedHash := []byte{112, 202, 6, 16, 105, 254, 127, 233, 195, 197, 100, 39, 173, 181, 27, 194, 240, 234, 102, 38}
 	assert.Equalf(t, string(expectedHash), referenceTestExample.getHash(), "Get Hash Test: failed")
 }
+
+func TestIsNil(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		fields   *fields
+		expected bool
+	}{
+		{
+			name: "IsNil All Nil Fields",
+			fields: &fields{
+				byteReferences: map[string]*[]byte{
+					"foo": {},
+					"bar": {},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "IsNil Some Nil Fields",
+			fields: &fields{
+				byteReferences: map[string]*[]byte{
+					"foo": {},
+					"bar": {},
+					"a":   {1, 2, 3},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "IsNil No Nil Fields",
+			fields: &fields{
+				byteReferences: map[string]*[]byte{
+					"foo": {1, 2, 3},
+					"bar": {3, 2, 1},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "IsNil No Nil Fields But Nil Child",
+			fields: &fields{
+				byteReferences: map[string]*[]byte{
+					"foo": {1, 2, 3},
+					"bar": {3, 2, 1},
+				},
+				oneToManys: map[string]*fields{
+					"": {
+						byteReferences: map[string]*[]byte{
+							"foo": {},
+							"bar": {},
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+	}
+
+	for _, test := range tests {
+		assert.Equalf(t, test.expected, test.fields.isNil(), "")
+	}
+}

@@ -1074,5 +1074,284 @@ func TestEmptyNilFields(t *testing.T) {
 		// assert that the expected and result are equal by value
 		assert.Equalf(t, test.expected, test.fields, msg)
 	}
+}
 
+// TODO this test could be improved as it currently only tests a handful of merge possibilities
+// TODO and is long-winded so hard to follow.
+func TestMerge(t *testing.T) {
+
+	type innerObjDef struct {
+		intFoo int
+		intBar int
+	}
+
+	type objDef struct {
+		foo        string
+		bar        string
+		foobar     *innerObjDef
+		foobarMany []innerObjDef
+	}
+
+	mapObjDef := func(def *objDef, slice *[]objDef) *fields {
+		f := &fields{
+			obj: def,
+			orderedFieldNames: []string{
+				"foo",
+				"bar",
+			},
+			references: map[string]interface{}{
+				"foo": &def.foo,
+				"bar": &def.bar,
+			},
+			byteReferences: map[string]*[]byte{
+				"foo": referenceField([]byte(def.foo)),
+				"bar": referenceField([]byte(def.bar)),
+			},
+			orderedOneToOneNames: []string{
+				"foobar",
+			},
+			oneToOnes: map[string]*fields{
+				"foobar": {
+					obj: &def.foobar,
+					orderedFieldNames: []string{
+						"intFoo",
+						"intBar",
+					},
+					byteReferences: map[string]*[]byte{
+						"intFoo": referenceField([]byte(fmt.Sprintf("%d", &def.foobar.intFoo))),
+						"intBar": referenceField([]byte(fmt.Sprintf("%d", &def.foobar.intBar))),
+					},
+					references: map[string]interface{}{
+						"intFoo": &def.foobar.intFoo,
+						"intBar": &def.foobar.intBar,
+					},
+				},
+			},
+			oneToManys: map[string]*fields{
+				"foobar_many": {
+					obj: &def.foobarMany[0],
+					slice: &fieldsSlice{
+						sliceRef: &def.foobarMany,
+					},
+					orderedFieldNames: []string{
+						"intFoo",
+						"intBar",
+					},
+					references: map[string]interface{}{
+						"intFoo": &def.foobarMany[0].intFoo,
+						"intBar": &def.foobarMany[0].intBar,
+					},
+					byteReferences: map[string]*[]byte{
+						"intFoo": referenceField([]byte(fmt.Sprintf("%d", def.foobarMany[0].intFoo))),
+						"intBar": referenceField([]byte(fmt.Sprintf("%d", def.foobarMany[0].intBar))),
+					},
+				},
+			},
+		}
+
+		f.oneToManys["foobar_many"].slice.fields = []*fields{
+			f.oneToManys["foobar_many"],
+		}
+
+		if slice != nil {
+			*slice = append(*slice, *def)
+
+			f.slice = &fieldsSlice{
+				sliceRef: slice,
+				fields: []*fields{
+					f,
+				},
+			}
+		}
+
+		return f
+	}
+
+	tests := []struct {
+		name        string
+		slice       bool
+		inputA      *objDef
+		inputB      *objDef
+		expected    interface{}
+		expectedErr error
+	}{
+		{
+			name:  "Merge Two Successfully (Not Part of Slice)",
+			slice: false,
+			inputA: &objDef{
+				foo: "abc",
+				bar: "def",
+				foobar: &innerObjDef{
+					intFoo: 1,
+					intBar: 2,
+				},
+				foobarMany: []innerObjDef{
+					{
+						intFoo: 1,
+						intBar: 2,
+					},
+				},
+			},
+			inputB: &objDef{
+				foo: "abc",
+				bar: "def",
+				foobar: &innerObjDef{
+					intFoo: 1,
+					intBar: 2,
+				},
+				foobarMany: []innerObjDef{
+					{
+						intFoo: 8,
+						intBar: 9,
+					},
+				},
+			},
+			expected: &objDef{
+				foo: "abc",
+				bar: "def",
+				foobar: &innerObjDef{
+					intFoo: 1,
+					intBar: 2,
+				},
+				foobarMany: []innerObjDef{
+					{
+						intFoo: 1,
+						intBar: 2,
+					},
+					{
+						intFoo: 8,
+						intBar: 9,
+					},
+				},
+			},
+		},
+		{
+			name:  "Merge Two With Collision (Not Part of Slice)",
+			slice: false,
+			inputA: &objDef{
+				foo: "abc",
+				bar: "def",
+				foobar: &innerObjDef{
+					intFoo: 1,
+					intBar: 2,
+				},
+				foobarMany: []innerObjDef{
+					{
+						intFoo: 1,
+						intBar: 2,
+					},
+				},
+			},
+			inputB: &objDef{
+				foo: "abc",
+				bar: "abc",
+				foobar: &innerObjDef{
+					intFoo: 1,
+					intBar: 2,
+				},
+				foobarMany: []innerObjDef{
+					{
+						intFoo: 8,
+						intBar: 9,
+					},
+				},
+			},
+			expected:    nil, // N/A
+			expectedErr: fmt.Errorf("cannot merge fields as their data differs and they do not belong to a slice."),
+		},
+		{
+			name:  "Merge Two Successfully (Part of Slice)",
+			slice: true,
+			inputA: &objDef{
+				foo: "abc",
+				bar: "abc",
+				foobar: &innerObjDef{
+					intFoo: 1,
+					intBar: 2,
+				},
+				foobarMany: []innerObjDef{
+					{
+						intFoo: 1,
+						intBar: 2,
+					},
+				},
+			},
+			inputB: &objDef{
+				foo: "def",
+				bar: "def",
+				foobar: &innerObjDef{
+					intFoo: 1,
+					intBar: 2,
+				},
+				foobarMany: []innerObjDef{
+					{
+						intFoo: 8,
+						intBar: 9,
+					},
+				},
+			},
+			expected: &[]objDef{
+				{
+					foo: "abc",
+					bar: "abc",
+					foobar: &innerObjDef{
+						intFoo: 1,
+						intBar: 2,
+					},
+					foobarMany: []innerObjDef{
+						{
+							intFoo: 1,
+							intBar: 2,
+						},
+					},
+				},
+				{
+					foo: "def",
+					bar: "def",
+					foobar: &innerObjDef{
+						intFoo: 1,
+						intBar: 2,
+					},
+					foobarMany: []innerObjDef{
+						{
+							intFoo: 8,
+							intBar: 9,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+
+		msg := fmt.Sprintf("%s: failed", test.name)
+
+		var result interface{}
+		var err error
+
+		// if objects belong to slice, prepare by using slice as result instead of the underlying
+		// slice entity
+		if test.slice {
+
+			slice := &[]objDef{}
+			err = mapObjDef(test.inputA, slice).merge(mapObjDef(test.inputB, &[]objDef{}))
+			result = slice
+
+		} else {
+			err = mapObjDef(test.inputA, nil).merge(mapObjDef(test.inputB, nil))
+			result = test.inputA
+		}
+
+		// assert that the expected error was returned
+		assert.Equalf(t, test.expectedErr, err, msg)
+
+		// if an error occurred, skip as other asserts are nullified
+		if err != nil {
+			continue
+		}
+
+		// assert that the expected matches the result by value
+		assert.Equalf(t, test.expected, result, msg)
+	}
 }

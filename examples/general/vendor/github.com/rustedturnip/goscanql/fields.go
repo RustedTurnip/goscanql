@@ -263,8 +263,6 @@ func (f *fields) emptyNilFields() {
 		// or int would be set to 0.
 		rv := reflect.ValueOf(f.obj).Elem()
 		rv.Set(reflect.New(rv.Type()).Elem())
-
-		return
 	}
 
 	// repeat for all children

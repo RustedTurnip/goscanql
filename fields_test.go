@@ -897,3 +897,182 @@ func TestIsMatch(t *testing.T) {
 		assert.Equalf(t, test.expected, test.fields.isMatch(test.comparee), "")
 	}
 }
+
+func TestEmptyNilFields(t *testing.T) {
+
+	type testStruct struct {
+		name string
+	}
+	var nilTestStruct *testStruct
+
+	tests := []struct {
+		name     string
+		fields   *fields
+		expected *fields
+	}{
+		{
+			name: "Empty None Nil Parent, Nil Children",
+			fields: &fields{
+				obj: &testStruct{},
+				byteReferences: map[string]*[]byte{
+					"foo": {'f', 'o', 'o'},
+				},
+				oneToOnes: map[string]*fields{
+					"bar_child": {
+						obj: &testStruct{},
+						byteReferences: map[string]*[]byte{
+							"foo": {},
+						},
+					},
+				},
+				oneToManys: map[string]*fields{
+					"many_bar_child": {
+						slice: &fieldsSlice{
+							sliceRef: &[]testStruct{{}},
+						},
+						obj: referenceField(&testStruct{}),
+						byteReferences: map[string]*[]byte{
+							"foo": {},
+						},
+					},
+				},
+			},
+			expected: &fields{
+				obj: &testStruct{},
+				byteReferences: map[string]*[]byte{
+					"foo": {'f', 'o', 'o'},
+				},
+				oneToOnes: map[string]*fields{
+					"bar_child": {
+						obj: &testStruct{},
+						byteReferences: map[string]*[]byte{
+							"foo": {},
+						},
+					},
+				},
+				oneToManys: map[string]*fields{
+					"many_bar_child": {
+						slice: &fieldsSlice{
+							sliceRef: &[]testStruct{},
+						},
+						obj: referenceField(nilTestStruct),
+						byteReferences: map[string]*[]byte{
+							"foo": {},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Empty Nil Parent, Mixed Children",
+			fields: &fields{
+				obj: &testStruct{
+					name: "Gus",
+				},
+				byteReferences: map[string]*[]byte{
+					"foo": {'a'},
+				},
+				oneToOnes: map[string]*fields{
+					"full_bar_child": {
+						obj: &testStruct{
+							name: "full",
+						},
+						byteReferences: map[string]*[]byte{
+							"foo": {'a'},
+						},
+					},
+					"empty_foobar_child": {
+						obj: &testStruct{},
+						byteReferences: map[string]*[]byte{
+							"foo": {},
+						},
+					},
+				},
+				oneToManys: map[string]*fields{
+					"empty_many_bar_child": {
+						slice: &fieldsSlice{
+							sliceRef: &[]testStruct{{}},
+						},
+						obj: referenceField(&testStruct{}),
+						byteReferences: map[string]*[]byte{
+							"foo": {},
+						},
+					},
+					"full_many_bar_child": {
+						slice: &fieldsSlice{
+							sliceRef: &[]testStruct{
+								{
+									name: "full_slice_1",
+								},
+							},
+						},
+						obj: referenceField(nilTestStruct),
+						byteReferences: map[string]*[]byte{
+							"foo": {'f'},
+						},
+					},
+				},
+			},
+			expected: &fields{
+				obj: &testStruct{
+					name: "Gus",
+				},
+				byteReferences: map[string]*[]byte{
+					"foo": {'a'},
+				},
+				oneToOnes: map[string]*fields{
+					"full_bar_child": {
+						obj: &testStruct{
+							name: "full",
+						},
+						byteReferences: map[string]*[]byte{
+							"foo": {'a'},
+						},
+					},
+					"empty_foobar_child": {
+						obj: &testStruct{},
+						byteReferences: map[string]*[]byte{
+							"foo": {},
+						},
+					},
+				},
+				oneToManys: map[string]*fields{
+					"empty_many_bar_child": {
+						slice: &fieldsSlice{
+							sliceRef: &[]testStruct{},
+						},
+						obj: referenceField(nilTestStruct),
+						byteReferences: map[string]*[]byte{
+							"foo": {},
+						},
+					},
+					"full_many_bar_child": {
+						slice: &fieldsSlice{
+							sliceRef: &[]testStruct{
+								{
+									name: "full_slice_1",
+								},
+							},
+						},
+						obj: referenceField(nilTestStruct),
+						byteReferences: map[string]*[]byte{
+							"foo": {'f'},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+
+		msg := fmt.Sprintf("%s: failed", test.name)
+
+		// execute sut
+		test.fields.emptyNilFields()
+
+		// assert that the expected and result are equal by value
+		assert.Equalf(t, test.expected, test.fields, msg)
+	}
+
+}

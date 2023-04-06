@@ -44,14 +44,14 @@ func (fs *fieldsSlice) getExisting(f *fields) *fields {
 }
 
 // empty will set the slice to be an empty slice (removing any contained elements)
-func (fc *fieldsSlice) empty() {
+func (fs *fieldsSlice) empty() {
 
-	if fc.sliceRef == nil {
+	if fs.sliceRef == nil {
 		return
 	}
 
-	t := reflect.TypeOf(fc.sliceRef).Elem()
-	rv := reflect.ValueOf(fc.sliceRef).Elem()
+	t := reflect.TypeOf(fs.sliceRef).Elem()
+	rv := reflect.ValueOf(fs.sliceRef).Elem()
 
 	rv.Set(reflect.MakeSlice(t, 0, 0))
 }

@@ -63,13 +63,13 @@ func (f *fields) addNewChild(name string, obj interface{}) error {
 	// ensure that child with name doesn't already exist
 	collisionErr := fmt.Errorf("child already exists with name \"%s\"", name)
 
-	for childName, _ := range f.oneToOnes {
+	for childName := range f.oneToOnes {
 		if childName == name {
 			return collisionErr
 		}
 	}
 
-	for childName, _ := range f.oneToManys {
+	for childName := range f.oneToManys {
 		if childName == name {
 			return collisionErr
 		}
@@ -482,7 +482,7 @@ func (f *fields) merge(m *fields) error {
 		// and the provided element doesn't match the current element
 		// then fail merge as they are different so oneToManys cannot be merged
 		if !f.isMatch(m) {
-			return fmt.Errorf("cannot merge fields as their data differs and they do not belong to a slice.")
+			return fmt.Errorf("cannot merge fields as their data differs and they do not belong to a slice")
 		}
 
 		// if the provided fields matches the current fields, set existing to be

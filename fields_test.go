@@ -20,7 +20,7 @@ func TestInitialiseFields(t *testing.T) {
 	}
 
 	objExample := &struct {
-		Id                  int    `goscanql:"id"`
+		ID                  int    `goscanql:"id"`
 		Name                string `goscanql:"name"`
 		UnnamedField        string
 		TimeExample         time.Time       `goscanql:"time"`
@@ -91,7 +91,7 @@ func TestInitialiseFields(t *testing.T) {
 			"child_pointer_pointer",
 		},
 		references: map[string]interface{}{
-			"id":   &objExample.Id,
+			"id":   &objExample.ID,
 			"name": &objExample.Name,
 			"time": referenceField(time.Time{}),
 		},
@@ -118,7 +118,7 @@ func TestInitialiseFields(t *testing.T) {
 	assert.Equalf(t, expected, subject, "")
 
 	// assert that all the pointers refer to fields of the original object
-	assert.Samef(t, &objExample.Id, subject.references["id"], "")
+	assert.Samef(t, &objExample.ID, subject.references["id"], "")
 	assert.Samef(t, &objExample.Name, subject.references["name"], "")
 	assert.Samef(t, &objExample.Child.Foo, subject.oneToOnes["child"].references["foo"], "")
 	assert.Samef(t, &objExample.Child.Bar, subject.oneToOnes["child"].references["bar"], "")
@@ -1257,7 +1257,7 @@ func TestMerge(t *testing.T) {
 				},
 			},
 			expected:    nil, // N/A
-			expectedErr: fmt.Errorf("cannot merge fields as their data differs and they do not belong to a slice."),
+			expectedErr: fmt.Errorf("cannot merge fields as their data differs and they do not belong to a slice"),
 		},
 		{
 			name:  "Merge Two Successfully (Part of Slice)",

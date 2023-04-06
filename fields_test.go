@@ -604,12 +604,8 @@ func TestCrawlFields(t *testing.T) {
 
 					result[prefix] = f
 
-					// early exit
-					if prefix == "" {
-						return true
-					}
-
-					return false
+					// early exit if empty string by returning true, else continue
+					return prefix == ""
 				}
 			},
 			expected: map[string]*fields{

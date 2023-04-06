@@ -111,25 +111,31 @@ func TestInitialiseFields(t *testing.T) {
 		},
 	}
 
-	subject.initialise("")
+	msg := "Initialised Fields Test: failed"
+
+	// execute sut
+	err := subject.initialise("")
+
+	// assert that the test doesn't return an error
+	assert.Equalf(t, nil, err, msg)
 
 	// assert that the general structure produced is as expected, this assertion does not inspect
 	// the memory addresses of pointers (only the underlying values)
 	assert.Equalf(t, expected, subject, "")
 
 	// assert that all the pointers refer to fields of the original object
-	assert.Samef(t, &objExample.ID, subject.references["id"], "")
-	assert.Samef(t, &objExample.Name, subject.references["name"], "")
-	assert.Samef(t, &objExample.Child.Foo, subject.oneToOnes["child"].references["foo"], "")
-	assert.Samef(t, &objExample.Child.Bar, subject.oneToOnes["child"].references["bar"], "")
-	assert.Samef(t, &objExample.ChildPointer.Foo, subject.oneToOnes["child_pointer"].references["foo"], "")
-	assert.Samef(t, &objExample.ChildPointer.Bar, subject.oneToOnes["child_pointer"].references["bar"], "")
-	assert.Samef(t, &(*objExample.ChildPointerPointer).Foo, subject.oneToOnes["child_pointer_pointer"].references["foo"], "")
-	assert.Samef(t, &(*objExample.ChildPointerPointer).Bar, subject.oneToOnes["child_pointer_pointer"].references["bar"], "")
-	assert.Samef(t, &objExample.Children[0].Foo, subject.oneToManys["children"].references["foo"], "")
-	assert.Samef(t, &objExample.Children[0].Bar, subject.oneToManys["children"].references["bar"], "")
-	assert.Samef(t, &(*objExample.ChildrenPointer)[0].Foo, subject.oneToManys["children_pointer"].references["foo"], "")
-	assert.Samef(t, &(*objExample.ChildrenPointer)[0].Bar, subject.oneToManys["children_pointer"].references["bar"], "")
+	assert.Samef(t, &objExample.ID, subject.references["id"], msg)
+	assert.Samef(t, &objExample.Name, subject.references["name"], msg)
+	assert.Samef(t, &objExample.Child.Foo, subject.oneToOnes["child"].references["foo"], msg)
+	assert.Samef(t, &objExample.Child.Bar, subject.oneToOnes["child"].references["bar"], msg)
+	assert.Samef(t, &objExample.ChildPointer.Foo, subject.oneToOnes["child_pointer"].references["foo"], msg)
+	assert.Samef(t, &objExample.ChildPointer.Bar, subject.oneToOnes["child_pointer"].references["bar"], msg)
+	assert.Samef(t, &(*objExample.ChildPointerPointer).Foo, subject.oneToOnes["child_pointer_pointer"].references["foo"], msg)
+	assert.Samef(t, &(*objExample.ChildPointerPointer).Bar, subject.oneToOnes["child_pointer_pointer"].references["bar"], msg)
+	assert.Samef(t, &objExample.Children[0].Foo, subject.oneToManys["children"].references["foo"], msg)
+	assert.Samef(t, &objExample.Children[0].Bar, subject.oneToManys["children"].references["bar"], msg)
+	assert.Samef(t, &(*objExample.ChildrenPointer)[0].Foo, subject.oneToManys["children_pointer"].references["foo"], msg)
+	assert.Samef(t, &(*objExample.ChildrenPointer)[0].Bar, subject.oneToManys["children_pointer"].references["bar"], msg)
 }
 
 func TestNewFields(t *testing.T) {

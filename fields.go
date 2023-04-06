@@ -240,12 +240,7 @@ func (f *fields) isNil() bool {
 // isMatch will compare the provided fields (m) to the current fields to see if they are equal
 // in value, returning true if they are, and false otherwise.
 func (f *fields) isMatch(m *fields) bool {
-
-	if f.getHash() != m.getHash() {
-		return false
-	}
-
-	return true
+	return f.getHash() == m.getHash()
 }
 
 // emptyNilFields will nullify where possible any nil objects that are represented by the fields.

@@ -9,6 +9,19 @@ import (
 	"time"
 )
 
+// nullBytes re[presents a scannable entity that can be used to determine if the incoming value is
+// nil (but does not store the value).
+type nullBytes struct {
+	isNil bool
+}
+
+// Scan is required to implement the Scan interface for reading SQL rows into fields. This function
+// will assess whether the inbound value is nil or not, but doesn't store the value itself.
+func (n *nullBytes) Scan(value interface{}) error {
+	n.isNil = value == nil
+	return nil
+}
+
 // fields holds a goscanql parsed struct, maintaining references to the fields
 // of the struct and any sub-structs (children).
 type fields struct {
@@ -34,7 +47,7 @@ type fields struct {
 
 	// byteReferences maintains a reference of a byte slice for each field which is used for
 	// determining nil fields.
-	byteReferences map[string]*[]byte
+	byteReferences map[string]*nullBytes
 
 	// oneToOnes holds all child structs of the fields entity that are maintained as a
 	// one-to-one relationship.
@@ -97,7 +110,7 @@ func (f *fields) addField(name string, value interface{}) error {
 	// add field to this instance
 	f.orderedFieldNames = append(f.orderedFieldNames, name)
 	f.references[name] = value
-	f.byteReferences[name] = &[]byte{}
+	f.byteReferences[name] = &nullBytes{}
 
 	return nil
 }
@@ -126,9 +139,9 @@ func (f *fields) getFieldReferences() map[string]interface{} {
 
 // getByteReferences returns a map of all of the fields byte references (including any child
 // field references).
-func (f *fields) getByteReferences() map[string]*[]byte {
+func (f *fields) getByteReferences() map[string]*nullBytes {
 
-	m := make(map[string]*[]byte)
+	m := make(map[string]*nullBytes)
 
 	f.crawlFields(func(prefix string, fi *fields) bool {
 
@@ -229,7 +242,7 @@ func (f *fields) getBytePrint(prefix string) []byte {
 func (f *fields) isNil() bool {
 
 	for _, b := range f.byteReferences {
-		if len(*b) > 0 {
+		if !b.isNil {
 			return false
 		}
 	}
@@ -327,7 +340,7 @@ func newFields(obj interface{}) (*fields, error) {
 		orderedFieldNames:    make([]string, 0),
 		orderedOneToOneNames: make([]string, 0),
 		references:           make(map[string]interface{}),
-		byteReferences:       make(map[string]*[]byte),
+		byteReferences:       make(map[string]*nullBytes),
 		oneToOnes:            make(map[string]*fields),
 		oneToManys:           make(map[string]*fields),
 	}

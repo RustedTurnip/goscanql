@@ -22,6 +22,12 @@ func (n *nullBytes) Scan(value interface{}) error {
 	return nil
 }
 
+func newNullBytes() *nullBytes {
+	return &nullBytes{
+		isNil: true,
+	}
+}
+
 // fields holds a goscanql parsed struct, maintaining references to the fields
 // of the struct and any sub-structs (children).
 type fields struct {
@@ -110,7 +116,7 @@ func (f *fields) addField(name string, value interface{}) error {
 	// add field to this instance
 	f.orderedFieldNames = append(f.orderedFieldNames, name)
 	f.references[name] = value
-	f.nullFields[name] = &nullBytes{}
+	f.nullFields[name] = newNullBytes()
 
 	return nil
 }

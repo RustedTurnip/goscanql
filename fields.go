@@ -45,9 +45,9 @@ type fields struct {
 	// be set.
 	references map[string]interface{}
 
-	// byteReferences maintains a reference of a byte slice for each field which is used for
-	// determining nil fields.
-	byteReferences map[string]*nullBytes
+	// nullFields holds a nullBytes entity for each field and is used to determine whether a
+	// field is nil or not.
+	nullFields map[string]*nullBytes
 
 	// oneToOnes holds all child structs of the fields entity that are maintained as a
 	// one-to-one relationship.
@@ -110,7 +110,7 @@ func (f *fields) addField(name string, value interface{}) error {
 	// add field to this instance
 	f.orderedFieldNames = append(f.orderedFieldNames, name)
 	f.references[name] = value
-	f.byteReferences[name] = &nullBytes{}
+	f.nullFields[name] = &nullBytes{}
 
 	return nil
 }
@@ -137,15 +137,15 @@ func (f *fields) getFieldReferences() map[string]interface{} {
 	return m
 }
 
-// getByteReferences returns a map of all of the fields byte references (including any child
-// field references).
-func (f *fields) getByteReferences() map[string]*nullBytes {
+// getNullFieldReferences returns a map of all of the null fieldreferences (including any child
+// references).
+func (f *fields) getNullFieldReferences() map[string]*nullBytes {
 
 	m := make(map[string]*nullBytes)
 
 	f.crawlFields(func(prefix string, fi *fields) bool {
 
-		for name, reference := range fi.byteReferences {
+		for name, reference := range fi.nullFields {
 			m[buildReferenceName(prefix, name)] = reference
 		}
 
@@ -237,11 +237,11 @@ func (f *fields) getBytePrint(prefix string) []byte {
 	return print
 }
 
-// isNil will the incoming data to a fields (once it has been written to the byteReferences)
+// isNil will the incoming data to a fields (once it has been written to the nullFields)
 // to see if the object that the fields represents will be nil.
 func (f *fields) isNil() bool {
 
-	for _, b := range f.byteReferences {
+	for _, b := range f.nullFields {
 		if !b.isNil {
 			return false
 		}
@@ -287,7 +287,7 @@ func (f *fields) emptyNilFields() {
 // by providing it with all the field references so that values can be written.
 func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
 
-	byteRefs := mapFieldsToColumns(columns, f.getByteReferences())
+	byteRefs := mapFieldsToColumns(columns, f.getNullFieldReferences())
 
 	err := scan(byteRefs...)
 	if err != nil {
@@ -340,7 +340,7 @@ func newFields(obj interface{}) (*fields, error) {
 		orderedFieldNames:    make([]string, 0),
 		orderedOneToOneNames: make([]string, 0),
 		references:           make(map[string]interface{}),
-		byteReferences:       make(map[string]*nullBytes),
+		nullFields:           make(map[string]*nullBytes),
 		oneToOnes:            make(map[string]*fields),
 		oneToManys:           make(map[string]*fields),
 	}

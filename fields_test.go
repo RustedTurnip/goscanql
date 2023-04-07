@@ -37,7 +37,7 @@ func TestInitialiseFields(t *testing.T) {
 		orderedFieldNames:    []string{},
 		orderedOneToOneNames: []string{},
 		references:           map[string]interface{}{},
-		byteReferences:       map[string]*[]byte{},
+		nullFields:           map[string]*nullBytes{},
 		oneToOnes:            map[string]*fields{},
 		oneToManys:           map[string]*fields{},
 	}
@@ -55,9 +55,9 @@ func TestInitialiseFields(t *testing.T) {
 				"foo": referenceField(0),
 				"bar": referenceField(""),
 			},
-			byteReferences: map[string]*[]byte{
-				"foo": {},
-				"bar": {},
+			nullFields: map[string]*nullBytes{
+				"foo": {isNil: true},
+				"bar": {isNil: true},
 			},
 			oneToOnes:  map[string]*fields{},
 			oneToManys: map[string]*fields{},
@@ -95,10 +95,10 @@ func TestInitialiseFields(t *testing.T) {
 			"name": &objExample.Name,
 			"time": referenceField(time.Time{}),
 		},
-		byteReferences: map[string]*[]byte{
-			"id":   {},
-			"name": {},
-			"time": {},
+		nullFields: map[string]*nullBytes{
+			"id":   {isNil: true},
+			"name": {isNil: true},
+			"time": {isNil: true},
 		},
 		oneToOnes: map[string]*fields{
 			"child":                 newExpectedChildExampleFields(&childExample{}, false),
@@ -170,9 +170,9 @@ func TestNewFields(t *testing.T) {
 					"foo": referenceField(0),
 					"bar": referenceField(""),
 				},
-				byteReferences: map[string]*[]byte{
-					"foo": {},
-					"bar": {},
+				nullFields: map[string]*nullBytes{
+					"foo": {isNil: true},
+					"bar": {isNil: true},
 				},
 				oneToOnes:  map[string]*fields{},
 				oneToManys: map[string]*fields{},
@@ -195,9 +195,9 @@ func TestNewFields(t *testing.T) {
 					"foo": referenceField(0),
 					"bar": referenceField(""),
 				},
-				byteReferences: map[string]*[]byte{
-					"foo": {},
-					"bar": {},
+				nullFields: map[string]*nullBytes{
+					"foo": {isNil: true},
+					"bar": {isNil: true},
 				},
 				oneToOnes:  map[string]*fields{},
 				oneToManys: map[string]*fields{},
@@ -395,7 +395,7 @@ func TestAddField(t *testing.T) {
 			fields: &fields{
 				orderedFieldNames: []string{},
 				references:        map[string]interface{}{},
-				byteReferences:    map[string]*[]byte{},
+				nullFields:        map[string]*nullBytes{},
 			},
 			expected: &fields{
 				orderedFieldNames: []string{
@@ -404,8 +404,8 @@ func TestAddField(t *testing.T) {
 				references: map[string]interface{}{
 					"field_name": referenceField(0),
 				},
-				byteReferences: map[string]*[]byte{
-					"field_name": {},
+				nullFields: map[string]*nullBytes{
+					"field_name": {isNil: true},
 				},
 			},
 			expectedErr: nil,
@@ -421,8 +421,8 @@ func TestAddField(t *testing.T) {
 				references: map[string]interface{}{
 					"field_name": referenceField(0),
 				},
-				byteReferences: map[string]*[]byte{
-					"field_name": {},
+				nullFields: map[string]*nullBytes{
+					"field_name": {isNil: true},
 				},
 			},
 			expected: &fields{
@@ -432,8 +432,8 @@ func TestAddField(t *testing.T) {
 				references: map[string]interface{}{
 					"field_name": referenceField(0),
 				},
-				byteReferences: map[string]*[]byte{
-					"field_name": {},
+				nullFields: map[string]*nullBytes{
+					"field_name": {isNil: true},
 				},
 			},
 			expectedErr: fmt.Errorf("field with name \"field_name\" already added"),
@@ -474,9 +474,9 @@ var (
 			"foo": referenceField(36),
 			"bar": referenceField("Hello, World!"),
 		},
-		byteReferences: map[string]*[]byte{
-			"foo": {'3', '6'},
-			"bar": {'H', 'e', 'l', 'l', 'o', ',', ' ', 'W', 'o', 'r', 'l', 'd', '!'},
+		nullFields: map[string]*nullBytes{
+			"foo": {isNil: false},
+			"bar": {isNil: false},
 		},
 		oneToOnes: map[string]*fields{
 			"single_child": {
@@ -486,8 +486,8 @@ var (
 				references: map[string]interface{}{
 					"time": referenceField(time.Time{}),
 				},
-				byteReferences: map[string]*[]byte{
-					"time": {'1', '9', '7', '0', '-', '0', '1', '-', '0', '1', 'T', '0', '0', ':', '0', '0', ':', '0', '0'},
+				nullFields: map[string]*nullBytes{
+					"time": {isNil: false},
 				},
 			},
 			"null_child": {
@@ -497,8 +497,8 @@ var (
 				references: map[string]interface{}{
 					"time": referenceField(time.Time{}),
 				},
-				byteReferences: map[string]*[]byte{
-					"time": {}, // as all byteReferences for this *fields are empty, it is considered nil
+				nullFields: map[string]*nullBytes{
+					"time": {isNil: true}, // as all nullFields for this *fields are nil, it is considered nil
 				},
 			},
 		},
@@ -512,9 +512,9 @@ var (
 					"many_foo": referenceField(72),
 					"many_bar": referenceField("Hello, worlds!"),
 				},
-				byteReferences: map[string]*[]byte{
-					"many_foo": {'7', '2'},
-					"many_bar": {'H', 'e', 'l', 'l', 'o', ',', ' ', 'w', 'o', 'r', 'l', 'd', 's', '!'},
+				nullFields: map[string]*nullBytes{
+					"many_foo": {isNil: false},
+					"many_bar": {isNil: false},
 				},
 			},
 			"null_children": {
@@ -524,8 +524,8 @@ var (
 				references: map[string]interface{}{
 					"foo": referenceField(0),
 				},
-				byteReferences: map[string]*[]byte{
-					"foo": {}, // as all byteReferences for this *fields are empty, it is considered nil
+				nullFields: map[string]*nullBytes{
+					"foo": {isNil: true}, // as all nullFields for this *fields are nil, it is considered nil
 				},
 			},
 		},
@@ -557,19 +557,19 @@ func TestGetFieldReferences(t *testing.T) {
 
 func TestGetByteReferences(t *testing.T) {
 
-	expected := map[string]*[]byte{
-		"foo":                    referenceTestExample.byteReferences["foo"],
-		"bar":                    referenceTestExample.byteReferences["bar"],
-		"single_child_time":      referenceTestExample.oneToOnes["single_child"].byteReferences["time"],
-		"null_child_time":        referenceTestExample.oneToOnes["null_child"].byteReferences["time"],
-		"many_children_many_foo": referenceTestExample.oneToManys["many_children"].byteReferences["many_foo"],
-		"many_children_many_bar": referenceTestExample.oneToManys["many_children"].byteReferences["many_bar"],
-		"null_children_foo":      referenceTestExample.oneToManys["null_children"].byteReferences["foo"],
+	expected := map[string]*nullBytes{
+		"foo":                    referenceTestExample.nullFields["foo"],
+		"bar":                    referenceTestExample.nullFields["bar"],
+		"single_child_time":      referenceTestExample.oneToOnes["single_child"].nullFields["time"],
+		"null_child_time":        referenceTestExample.oneToOnes["null_child"].nullFields["time"],
+		"many_children_many_foo": referenceTestExample.oneToManys["many_children"].nullFields["many_foo"],
+		"many_children_many_bar": referenceTestExample.oneToManys["many_children"].nullFields["many_bar"],
+		"null_children_foo":      referenceTestExample.oneToManys["null_children"].nullFields["foo"],
 	}
 
 	msg := "Get Byte References: failed"
 
-	result := referenceTestExample.getByteReferences()
+	result := referenceTestExample.getNullFieldReferences()
 
 	// assert that the result matches expected (by value)
 	assert.Equalf(t, expected, result, msg)
@@ -700,9 +700,9 @@ func TestIsNil(t *testing.T) {
 		{
 			name: "IsNil All Nil Fields",
 			fields: &fields{
-				byteReferences: map[string]*[]byte{
-					"foo": {},
-					"bar": {},
+				nullFields: map[string]*nullBytes{
+					"foo": {isNil: true},
+					"bar": {isNil: true},
 				},
 			},
 			expected: true,
@@ -710,10 +710,10 @@ func TestIsNil(t *testing.T) {
 		{
 			name: "IsNil Some Nil Fields",
 			fields: &fields{
-				byteReferences: map[string]*[]byte{
-					"foo": {},
-					"bar": {},
-					"a":   {1, 2, 3},
+				nullFields: map[string]*nullBytes{
+					"foo": {isNil: true},
+					"bar": {isNil: true},
+					"a":   {isNil: false},
 				},
 			},
 			expected: false,
@@ -721,9 +721,9 @@ func TestIsNil(t *testing.T) {
 		{
 			name: "IsNil No Nil Fields",
 			fields: &fields{
-				byteReferences: map[string]*[]byte{
-					"foo": {1, 2, 3},
-					"bar": {3, 2, 1},
+				nullFields: map[string]*nullBytes{
+					"foo": {isNil: false},
+					"bar": {isNil: false},
 				},
 			},
 			expected: false,
@@ -731,15 +731,15 @@ func TestIsNil(t *testing.T) {
 		{
 			name: "IsNil No Nil Fields But Nil Child",
 			fields: &fields{
-				byteReferences: map[string]*[]byte{
-					"foo": {1, 2, 3},
-					"bar": {3, 2, 1},
+				nullFields: map[string]*nullBytes{
+					"foo": {isNil: false},
+					"bar": {isNil: false},
 				},
 				oneToManys: map[string]*fields{
 					"": {
-						byteReferences: map[string]*[]byte{
-							"foo": {},
-							"bar": {},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: true},
+							"bar": {isNil: true},
 						},
 					},
 				},
@@ -749,7 +749,8 @@ func TestIsNil(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assert.Equalf(t, test.expected, test.fields.isNil(), "")
+		msg := fmt.Sprintf("%s: failed", test.name)
+		assert.Equalf(t, test.expected, test.fields.isNil(), msg)
 	}
 }
 
@@ -916,14 +917,14 @@ func TestEmptyNilFields(t *testing.T) {
 			name: "Empty None Nil Parent, Nil Children",
 			fields: &fields{
 				obj: &testStruct{},
-				byteReferences: map[string]*[]byte{
-					"foo": {'f', 'o', 'o'},
+				nullFields: map[string]*nullBytes{
+					"foo": {isNil: false},
 				},
 				oneToOnes: map[string]*fields{
 					"bar_child": {
 						obj: &testStruct{},
-						byteReferences: map[string]*[]byte{
-							"foo": {},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: true},
 						},
 					},
 				},
@@ -933,22 +934,22 @@ func TestEmptyNilFields(t *testing.T) {
 							sliceRef: &[]testStruct{{}},
 						},
 						obj: referenceField(&testStruct{}),
-						byteReferences: map[string]*[]byte{
-							"foo": {},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: true},
 						},
 					},
 				},
 			},
 			expected: &fields{
 				obj: &testStruct{},
-				byteReferences: map[string]*[]byte{
-					"foo": {'f', 'o', 'o'},
+				nullFields: map[string]*nullBytes{
+					"foo": {isNil: false},
 				},
 				oneToOnes: map[string]*fields{
 					"bar_child": {
 						obj: &testStruct{},
-						byteReferences: map[string]*[]byte{
-							"foo": {},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: true},
 						},
 					},
 				},
@@ -958,8 +959,8 @@ func TestEmptyNilFields(t *testing.T) {
 							sliceRef: &[]testStruct{},
 						},
 						obj: referenceField(nilTestStruct),
-						byteReferences: map[string]*[]byte{
-							"foo": {},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: true},
 						},
 					},
 				},
@@ -971,22 +972,22 @@ func TestEmptyNilFields(t *testing.T) {
 				obj: &testStruct{
 					name: "Gus",
 				},
-				byteReferences: map[string]*[]byte{
-					"foo": {'a'},
+				nullFields: map[string]*nullBytes{
+					"foo": {isNil: false},
 				},
 				oneToOnes: map[string]*fields{
 					"full_bar_child": {
 						obj: &testStruct{
 							name: "full",
 						},
-						byteReferences: map[string]*[]byte{
-							"foo": {'a'},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: false},
 						},
 					},
 					"empty_foobar_child": {
 						obj: &testStruct{},
-						byteReferences: map[string]*[]byte{
-							"foo": {},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: true},
 						},
 					},
 				},
@@ -996,8 +997,8 @@ func TestEmptyNilFields(t *testing.T) {
 							sliceRef: &[]testStruct{{}},
 						},
 						obj: referenceField(&testStruct{}),
-						byteReferences: map[string]*[]byte{
-							"foo": {},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: true},
 						},
 					},
 					"full_many_bar_child": {
@@ -1009,8 +1010,8 @@ func TestEmptyNilFields(t *testing.T) {
 							},
 						},
 						obj: referenceField(nilTestStruct),
-						byteReferences: map[string]*[]byte{
-							"foo": {'f'},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: false},
 						},
 					},
 				},
@@ -1019,22 +1020,22 @@ func TestEmptyNilFields(t *testing.T) {
 				obj: &testStruct{
 					name: "Gus",
 				},
-				byteReferences: map[string]*[]byte{
-					"foo": {'a'},
+				nullFields: map[string]*nullBytes{
+					"foo": {isNil: false},
 				},
 				oneToOnes: map[string]*fields{
 					"full_bar_child": {
 						obj: &testStruct{
 							name: "full",
 						},
-						byteReferences: map[string]*[]byte{
-							"foo": {'a'},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: false},
 						},
 					},
 					"empty_foobar_child": {
 						obj: &testStruct{},
-						byteReferences: map[string]*[]byte{
-							"foo": {},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: true},
 						},
 					},
 				},
@@ -1044,8 +1045,8 @@ func TestEmptyNilFields(t *testing.T) {
 							sliceRef: &[]testStruct{},
 						},
 						obj: referenceField(nilTestStruct),
-						byteReferences: map[string]*[]byte{
-							"foo": {},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: true},
 						},
 					},
 					"full_many_bar_child": {
@@ -1057,8 +1058,8 @@ func TestEmptyNilFields(t *testing.T) {
 							},
 						},
 						obj: referenceField(nilTestStruct),
-						byteReferences: map[string]*[]byte{
-							"foo": {'f'},
+						nullFields: map[string]*nullBytes{
+							"foo": {isNil: false},
 						},
 					},
 				},
@@ -1105,9 +1106,9 @@ func TestMerge(t *testing.T) {
 				"foo": &def.foo,
 				"bar": &def.bar,
 			},
-			byteReferences: map[string]*[]byte{
-				"foo": referenceField([]byte(def.foo)),
-				"bar": referenceField([]byte(def.bar)),
+			nullFields: map[string]*nullBytes{
+				"foo": {isNil: false},
+				"bar": {isNil: false},
 			},
 			orderedOneToOneNames: []string{
 				"foobar",
@@ -1119,9 +1120,9 @@ func TestMerge(t *testing.T) {
 						"intFoo",
 						"intBar",
 					},
-					byteReferences: map[string]*[]byte{
-						"intFoo": referenceField([]byte(fmt.Sprintf("%d", &def.foobar.intFoo))),
-						"intBar": referenceField([]byte(fmt.Sprintf("%d", &def.foobar.intBar))),
+					nullFields: map[string]*nullBytes{
+						"intFoo": {isNil: false},
+						"intBar": {isNil: false},
 					},
 					references: map[string]interface{}{
 						"intFoo": &def.foobar.intFoo,
@@ -1143,9 +1144,9 @@ func TestMerge(t *testing.T) {
 						"intFoo": &def.foobarMany[0].intFoo,
 						"intBar": &def.foobarMany[0].intBar,
 					},
-					byteReferences: map[string]*[]byte{
-						"intFoo": referenceField([]byte(fmt.Sprintf("%d", def.foobarMany[0].intFoo))),
-						"intBar": referenceField([]byte(fmt.Sprintf("%d", def.foobarMany[0].intBar))),
+					nullFields: map[string]*nullBytes{
+						"intFoo": {isNil: false},
+						"intBar": {isNil: false},
 					},
 				},
 			},

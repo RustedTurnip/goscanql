@@ -1,7 +1,5 @@
 # goscanql
 
-***Note:** This project is subject to change. Until v1, changes may be backwards incompatible.*
-
 `goscanql` is a library to supplement sql operations in Go. It allows you to layout a struct (using tags) that an 
 `sql.Rows` response from querying a database can be mapped to.
 

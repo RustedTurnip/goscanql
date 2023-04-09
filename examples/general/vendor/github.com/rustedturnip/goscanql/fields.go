@@ -9,6 +9,25 @@ import (
 	"time"
 )
 
+// nullBytes re[presents a scannable entity that can be used to determine if the incoming value is
+// nil (but does not store the value).
+type nullBytes struct {
+	isNil bool
+}
+
+// Scan is required to implement the Scan interface for reading SQL rows into fields. This function
+// will assess whether the inbound value is nil or not, but doesn't store the value itself.
+func (n *nullBytes) Scan(value interface{}) error {
+	n.isNil = value == nil
+	return nil
+}
+
+func newNullBytes() *nullBytes {
+	return &nullBytes{
+		isNil: true,
+	}
+}
+
 // fields holds a goscanql parsed struct, maintaining references to the fields
 // of the struct and any sub-structs (children).
 type fields struct {
@@ -32,9 +51,9 @@ type fields struct {
 	// be set.
 	references map[string]interface{}
 
-	// byteReferences maintains a reference of a byte slice for each field which is used for
-	// determining nil fields.
-	byteReferences map[string]*[]byte
+	// nullFields holds a nullBytes entity for each field and is used to determine whether a
+	// field is nil or not.
+	nullFields map[string]*nullBytes
 
 	// oneToOnes holds all child structs of the fields entity that are maintained as a
 	// one-to-one relationship.
@@ -63,13 +82,13 @@ func (f *fields) addNewChild(name string, obj interface{}) error {
 	// ensure that child with name doesn't already exist
 	collisionErr := fmt.Errorf("child already exists with name \"%s\"", name)
 
-	for childName, _ := range f.oneToOnes {
+	for childName := range f.oneToOnes {
 		if childName == name {
 			return collisionErr
 		}
 	}
 
-	for childName, _ := range f.oneToManys {
+	for childName := range f.oneToManys {
 		if childName == name {
 			return collisionErr
 		}
@@ -97,7 +116,7 @@ func (f *fields) addField(name string, value interface{}) error {
 	// add field to this instance
 	f.orderedFieldNames = append(f.orderedFieldNames, name)
 	f.references[name] = value
-	f.byteReferences[name] = &[]byte{}
+	f.nullFields[name] = newNullBytes()
 
 	return nil
 }
@@ -124,15 +143,15 @@ func (f *fields) getFieldReferences() map[string]interface{} {
 	return m
 }
 
-// getByteReferences returns a map of all of the fields byte references (including any child
-// field references).
-func (f *fields) getByteReferences() map[string]*[]byte {
+// getNullFieldReferences returns a map of all of the null fieldreferences (including any child
+// references).
+func (f *fields) getNullFieldReferences() map[string]*nullBytes {
 
-	m := make(map[string]*[]byte)
+	m := make(map[string]*nullBytes)
 
 	f.crawlFields(func(prefix string, fi *fields) bool {
 
-		for name, reference := range fi.byteReferences {
+		for name, reference := range fi.nullFields {
 			m[buildReferenceName(prefix, name)] = reference
 		}
 
@@ -224,12 +243,12 @@ func (f *fields) getBytePrint(prefix string) []byte {
 	return print
 }
 
-// isNil will the incoming data to a fields (once it has been written to the byteReferences)
+// isNil will the incoming data to a fields (once it has been written to the nullFields)
 // to see if the object that the fields represents will be nil.
 func (f *fields) isNil() bool {
 
-	for _, b := range f.byteReferences {
-		if len(*b) > 0 {
+	for _, b := range f.nullFields {
+		if !b.isNil {
 			return false
 		}
 	}
@@ -240,12 +259,7 @@ func (f *fields) isNil() bool {
 // isMatch will compare the provided fields (m) to the current fields to see if they are equal
 // in value, returning true if they are, and false otherwise.
 func (f *fields) isMatch(m *fields) bool {
-
-	if f.getHash() != m.getHash() {
-		return false
-	}
-
-	return true
+	return f.getHash() == m.getHash()
 }
 
 // emptyNilFields will nullify where possible any nil objects that are represented by the fields.
@@ -279,7 +293,7 @@ func (f *fields) emptyNilFields() {
 // by providing it with all the field references so that values can be written.
 func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
 
-	byteRefs := mapFieldsToColumns(columns, f.getByteReferences())
+	byteRefs := mapFieldsToColumns(columns, f.getNullFieldReferences())
 
 	err := scan(byteRefs...)
 	if err != nil {
@@ -332,7 +346,7 @@ func newFields(obj interface{}) (*fields, error) {
 		orderedFieldNames:    make([]string, 0),
 		orderedOneToOneNames: make([]string, 0),
 		references:           make(map[string]interface{}),
-		byteReferences:       make(map[string]*[]byte),
+		nullFields:           make(map[string]*nullBytes),
 		oneToOnes:            make(map[string]*fields),
 		oneToManys:           make(map[string]*fields),
 	}
@@ -482,7 +496,7 @@ func (f *fields) merge(m *fields) error {
 		// and the provided element doesn't match the current element
 		// then fail merge as they are different so oneToManys cannot be merged
 		if !f.isMatch(m) {
-			return fmt.Errorf("cannot merge fields as their data differs and they do not belong to a slice.")
+			return fmt.Errorf("cannot merge fields as their data differs and they do not belong to a slice")
 		}
 
 		// if the provided fields matches the current fields, set existing to be

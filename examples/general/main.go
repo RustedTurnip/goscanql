@@ -36,6 +36,7 @@ func main() {
 		panic(err)
 	}
 
+	// RowsToStructs example
 	rows, err := db.Query(`SELECT account.id            AS id,
        account.email         AS email,
        account.date_of_birth AS date_of_birth,
@@ -64,4 +65,33 @@ func main() {
 	for _, account := range accounts {
 		fmt.Printf("%#v\n", *account)
 	}
+
+	// RowToStruct example
+	rowsSingle, err := db.Query(`SELECT account.id            AS id,
+       account.email         AS email,
+       account.date_of_birth AS date_of_birth,
+       account.created_at    AS created_at,
+       pet.id                AS pets_id,
+       pet.name              AS pets_name,
+       pet.animal            AS pets_animal,
+       pet.breed             AS pets_breed,
+       colour.name           AS pets_colour_name,
+       colour.red            AS pets_colour_red,
+       colour.green          AS pets_colour_green,
+       colour.blue           AS pets_colour_blue
+  FROM account
+           LEFT JOIN pet ON account.id = pet.account_id
+           LEFT JOIN colour ON pet.colour_name = colour.name
+  WHERE account.email = 'walter.white@gmail.com';`)
+
+	if err != nil {
+		panic(err)
+	}
+
+	account, err := goscanql.RowToStruct[*Account](rowsSingle)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%#v\n", *account)
 }

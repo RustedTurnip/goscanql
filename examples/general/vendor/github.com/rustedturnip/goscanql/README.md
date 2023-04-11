@@ -46,7 +46,7 @@ users, err := goscanql.RowsToStructs[*User](rows)
 ...
 ```
 
-Ass sql.NullInt64 implements the scanner interface, the value of the sql query under the column `id` will be passed 
+As sql.NullInt64 implements the scanner interface, the value of the sql query under the column `id` will be passed
 directly into the `sql.NullInt64` struct (whereas otherwise, the `sql.NullInt` struct would have been analysed for 
 sub-fields that have `goscanql` tags).
 

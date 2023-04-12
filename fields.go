@@ -394,7 +394,12 @@ func (f *fields) initialise(prefix string) error {
 
 	// cannot support arrays so panic
 	if rv.Kind() == reflect.Array {
-		panic("arrays are not supported, consider using a slice instead")
+		panic("arrays are not supported, consider using a slice instead or scanner implementation")
+	}
+
+	// cannot support maps so panic
+	if rv.Kind() == reflect.Map {
+		panic("maps are not supported, consider using a slice or scanner implementation")
 	}
 
 	// if time.Time

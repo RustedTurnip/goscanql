@@ -387,7 +387,7 @@ func (f *fields) initialise(prefix string) error {
 		return nil
 	}
 
-	// if type is slice, add 1 element to it to store values
+	// if type is slice, panic as this indicates multi-dimensional slice
 	if rv.Kind() == reflect.Slice {
 		panic("multi-dimensional slices are not supported")
 	}

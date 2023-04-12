@@ -531,6 +531,56 @@ func TestAddField(t *testing.T) {
 	}
 }
 
+func TestAddFieldPanics(t *testing.T) {
+
+	tests := []struct {
+		name               string
+		field              interface{}
+		expectedPanicValue string
+		expectedErr        error
+	}{
+		{
+			name:               "Panic With Map",
+			field:              &map[string]int{},
+			expectedPanicValue: "maps are not supported, consider using a slice or scanner implementation instead",
+		},
+		{
+			name:               "Panic With Array",
+			field:              &[5]string{},
+			expectedPanicValue: "arrays are not supported, consider using a slice or scanner implementation instead",
+		},
+	}
+
+	// run through tests
+	for _, test := range tests {
+		msg := fmt.Sprintf("%s: failed", test.name)
+
+		// initialise fields for test
+		f := &fields{
+			obj:        &struct{}{},
+			references: map[string]interface{}{},
+			nullFields: map[string]*nullBytes{},
+			oneToOnes:  map[string]*fields{},
+		}
+
+		var err error
+
+		// assert test panics as expected
+		assert.PanicsWithValue(
+			t,
+			test.expectedPanicValue,
+			func() {
+				// execute sut
+				err = f.addField("", test.field)
+			},
+			msg,
+		)
+
+		// assert expected error
+		assert.Equalf(t, test.expectedErr, err, msg)
+	}
+}
+
 var (
 	referenceTestExample = &fields{
 		orderedFieldNames: []string{

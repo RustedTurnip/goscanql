@@ -113,6 +113,19 @@ func (f *fields) addField(name string, value interface{}) error {
 		return fmt.Errorf("field with name \"%s\" already added", name)
 	}
 
+	// run type checks to ensure that value is supported
+	rv := reflect.ValueOf(value).Elem()
+
+	// cannot support arrays so panic
+	if rv.Kind() == reflect.Array {
+		panic("arrays are not supported, consider using a slice or scanner implementation instead")
+	}
+
+	// cannot support maps so panic
+	if rv.Kind() == reflect.Map {
+		panic("maps are not supported, consider using a slice or scanner implementation instead")
+	}
+
 	// add field to this instance
 	f.orderedFieldNames = append(f.orderedFieldNames, name)
 	f.references[name] = value
@@ -387,12 +400,13 @@ func (f *fields) initialise(prefix string) error {
 		return nil
 	}
 
-	// if type is slice, add 1 element to it to store values
+	// if type is slice, panic as this indicates multi-dimensional slice (this triggers
+	// when initialise is called for a slice value)
 	if rv.Kind() == reflect.Slice {
-		panic("multi-dimensional slices are not supported")
+		panic("multi-dimensional slices are not supported, consider using a slice or scanner implementation instead")
 	}
 
-	// if time.Time
+	// if time.Time (this triggers when initialise is called for a slice value)
 	if _, ok := rv.Interface().(time.Time); ok {
 
 		err := f.addField(prefix, rv.Addr().Interface())
@@ -403,7 +417,7 @@ func (f *fields) initialise(prefix string) error {
 		return nil
 	}
 
-	// if primitive
+	// if type doesn't have nested fields (this triggers when initialise is called for a slice value)
 	if rv.Kind() != reflect.Struct {
 
 		err := f.addField(prefix, rv.Addr().Interface())

@@ -138,6 +138,77 @@ func TestInitialiseFields(t *testing.T) {
 	assert.Samef(t, &(*objExample.ChildrenPointer)[0].Bar, subject.oneToManys["children_pointer"].references["bar"], msg)
 }
 
+func TestInitialiseFieldsPanics(t *testing.T) {
+
+	tests := []struct {
+		name               string
+		obj                interface{}
+		expectedPanicValue string
+		expectedErr        error
+	}{
+		{
+			name: "Panic With Multi-dimensional Slice",
+			obj: struct {
+				Id     int     `goscanql:"id"`
+				MSlice [][]int `goscanql:"m_slice"` // unsupported field
+				Name   string  `goscanql:"name"`
+			}{},
+			expectedPanicValue: "multi-dimensional slices are not supported, consider using a slice or scanner implementation instead",
+			expectedErr:        nil,
+		},
+		{
+			name: "Panic With Pointer Pointer Multi-dimensional Slice",
+			obj: struct {
+				Id     int       `goscanql:"id"`
+				MSlice *[]*[]int `goscanql:"m_slice"` // unsupported field
+				Name   string    `goscanql:"name"`
+			}{},
+			expectedPanicValue: "multi-dimensional slices are not supported, consider using a slice or scanner implementation instead",
+			expectedErr:        nil,
+		},
+		{
+			name: "Panic With Pointer To Pointers Multi-dimensional Slice",
+			obj: struct {
+				Id     int         `goscanql:"id"`
+				MSlice **[]**[]int `goscanql:"m_slice"` // unsupported field
+				Name   string      `goscanql:"name"`
+			}{},
+			expectedPanicValue: "multi-dimensional slices are not supported, consider using a slice or scanner implementation instead",
+			expectedErr:        nil,
+		},
+	}
+
+	// run through tests
+	for _, test := range tests {
+		msg := fmt.Sprintf("%s: failed", test.name)
+
+		// initialise fields for test
+		f := &fields{
+			// reflect.New below is workaround as initialise was picking struct up as kind: reflect.Interface
+			obj:        reflect.New(reflect.TypeOf(test.obj)).Interface(),
+			references: map[string]interface{}{},
+			nullFields: map[string]*nullBytes{},
+			oneToOnes:  map[string]*fields{},
+		}
+
+		var err error
+
+		// assert expected panic
+		assert.PanicsWithValuef(
+			t,
+			test.expectedPanicValue,
+			func() {
+				// execute sut
+				err = f.initialise("")
+			},
+			msg,
+		)
+
+		// assert expected error
+		assert.Equalf(t, test.expectedErr, err, msg)
+	}
+}
+
 func TestNewFields(t *testing.T) {
 
 	type testExample struct {

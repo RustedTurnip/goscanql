@@ -392,6 +392,11 @@ func (f *fields) initialise(prefix string) error {
 		panic("multi-dimensional slices are not supported")
 	}
 
+	// cannot support arrays so panic
+	if rv.Kind() == reflect.Array {
+		panic("arrays are not supported, consider using a slice instead")
+	}
+
 	// if time.Time
 	if _, ok := rv.Interface().(time.Time); ok {
 

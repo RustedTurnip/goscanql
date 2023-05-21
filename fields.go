@@ -379,6 +379,64 @@ func newFields(obj interface{}) (*fields, error) {
 	return fields, nil
 }
 
+// TODO - probably need to rename as another func called validateType
+func validateInputType(obj interface{}, types map[reflect.Type]interface{}) error {
+
+	rva := instantiateAndReturnAll(obj)
+
+	rv := rva[0]
+	t := rv.Type()
+
+	// if type implements the Scanner interface, doesn't require validation
+	// TODO extract to isScanner func
+	iScanner := reflect.TypeOf((*sql.Scanner)(nil)).Elem()
+	if t.Implements(iScanner) {
+		return nil
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+
+		fieldValue := rv.Field(i)
+
+		// skip if field doesn't have scanql tag
+		_, ok := t.Field(i).Tag.Lookup(scanqlTag)
+		if !ok {
+			continue
+		}
+
+		fieldValueAll := instantiateAndReturnAll(fieldValue.Addr().Interface())
+		fieldValueRoot := fieldValueAll[0]
+
+		if fieldValueRoot.Kind() == reflect.Slice {
+			// get slice type, e.g. []*Example has a slice type of *Example
+			sliceType := reflect.TypeOf(rv.Interface()).Elem()
+
+			// create new element of sliceType
+			element := reflect.New(sliceType).Elem()
+
+			return validateInputType(element, types)
+		}
+
+		if fieldValueRoot.Kind() == reflect.Struct {
+
+			if _, ok := types[fieldValueRoot.Type()]; ok {
+				return fmt.Errorf("goscanql does not support cyclic structs: %s", fieldValueRoot.Type().String())
+			}
+
+			// add map to pass down to children
+			types[fieldValueRoot.Type()] = struct{}{}
+
+			// delete from map as same struct can appear side-by-side, just not as a child
+			defer delete(types, fieldValueRoot.Type())
+
+			// pass recursively to analyse structs children
+			return validateInputType(fieldValueAll[len(fieldValueAll)-1].Addr().Interface(), types) // TODO duplicated code, see initialise
+		}
+	}
+
+	return nil
+}
+
 // initialise uses reflection to map it out and maintain references to the object's
 // fields.
 func (f *fields) initialise(prefix string) error {
@@ -389,6 +447,7 @@ func (f *fields) initialise(prefix string) error {
 	t := rv.Type()
 
 	// if type implements the Scanner interface, add it as is
+	// TODO extract to isScanner func
 	iScanner := reflect.TypeOf((*sql.Scanner)(nil)).Elem()
 	if rv.Type().Implements(iScanner) {
 

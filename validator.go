@@ -73,7 +73,8 @@ var (
 	}
 )
 
-// TODO
+// validateType analyses the provided input type and ensures that it will is valid based on
+// goscanql's input rules (including no cyclic structs).
 func validateType[T any]() error {
 
 	// initialise empty instance of type T so we can evaluate it's type
@@ -107,7 +108,10 @@ func validateType[T any]() error {
 	return nil
 }
 
-// TODO
+// getPointerRootType takes a reflect.Type (t) as input and returns the innermost type
+// that is not a pointer.
+//
+// For example, ****[]string returns []string, **[]*string returns []*string and so on.
 func getPointerRootType(t reflect.Type) reflect.Type {
 
 	if t.Kind() != reflect.Pointer {
@@ -117,20 +121,32 @@ func getPointerRootType(t reflect.Type) reflect.Type {
 	return getPointerRootType(t.Elem())
 }
 
-// TODO
-func getRootSliceType(t reflect.Type) reflect.Type {
+// getSliceRootType takes a reflect.Type (t) as input and returns the first non-slice
+// type.
+//
+// NOTE: pointers to slices are treated as slices, but slices to pointers of
+// non-slices, are left as pointers.
+//
+// For example, **[]*[]string would return string, but **[]*[]*string would return
+// *string as the type (leaving the pointer on the string type even though the
+// pointers to slices have been treated as slices).
+func getSliceRootType(t reflect.Type) reflect.Type {
 
-	t = getPointerRootType(t)
+	raw := getPointerRootType(t)
 
-	if t.Kind() != reflect.Slice {
+	if raw.Kind() != reflect.Slice {
 		return t
 	}
 
 	// pass forward slice type, e.g. []*Example has a slice type of *Example
-	return getRootSliceType(t.Elem())
+	return getSliceRootType(raw.Elem())
 }
 
-// TODO
+// verifyNoCycles takes a reflect.Type (t) and analyses it for cycles (where a struct
+// maintains an internal reference to the same struct).
+//
+// NOTE: this function assumes that t is a struct type, any other type will result in
+// a panic.
 func verifyNoCycles(t reflect.Type) error {
 
 	t = getPointerRootType(t)
@@ -147,7 +163,12 @@ func verifyNoCycles(t reflect.Type) error {
 	return fmt.Errorf("goscanql does not support cyclic structs: %s", t.String())
 }
 
-// TODO mention only a struct may be provided
+// hasCycle implements a recursive crawl that traverses the children of the provided
+// reflect.Type (t) and looks for any struct cycles (where a struct type has a field
+// of its own type - this could be a field of a field).
+//
+// NOTE: this function assumes that t is a struct type, any other type will result in
+// a panic.
 func hasCycle(t reflect.Type, m map[reflect.Type]interface{}) bool {
 
 	m[t] = struct{}{}
@@ -159,7 +180,8 @@ func hasCycle(t reflect.Type, m map[reflect.Type]interface{}) bool {
 			continue
 		}
 
-		fieldType := getRootSliceType(t.Field(i).Type)
+		fieldType := getSliceRootType(t.Field(i).Type) // strip away slices
+		fieldType = getPointerRootType(fieldType)      // strip away pointers
 
 		if isScanner(fieldType) {
 			continue
@@ -183,19 +205,27 @@ func hasCycle(t reflect.Type, m map[reflect.Type]interface{}) bool {
 	return false
 }
 
-// TODO
+// isGoscanqlField takes a reflect.Field (f) and evaluates whether it is a
+// goscanql-tagged field or not (meaning the parent struct has it tagged with
+// `goscanql:"tag_name"`). If so, true is returned, otherwise false.
 func isGoscanqlField(f reflect.StructField) bool {
 	_, b := f.Tag.Lookup(scanqlTag)
 	return b
 }
 
-// TODO
+// isScanner returns whether the provided reflect.Type (t) implements the sql.Scanner
+// interface.
 func isScanner(t reflect.Type) bool {
 	iScanner := reflect.TypeOf((*sql.Scanner)(nil)).Elem()
 	return t.Implements(iScanner)
 }
 
-// TODO
+// traverseType will recursively traverse the children of the provided type and
+// run the provided func (f) on each child field. This function provides a generic
+// way to traverse the fields of a struct.
+//
+// If a non-struct type is provided, the function will be run on the provided type
+// and return immediately (as there are now more fields to traverse).
 func traverseType(t reflect.Type, f func(t reflect.Type) error) error {
 
 	t = getPointerRootType(t)
@@ -208,7 +238,7 @@ func traverseType(t reflect.Type, f func(t reflect.Type) error) error {
 
 	// if slice, evaluate slices sub-type
 	if t.Kind() == reflect.Slice {
-		return traverseType(getRootSliceType(t), f)
+		return traverseType(getSliceRootType(t), f)
 	}
 
 	// if type isn't traversable (as it isn't a slice or struct) we have reached end of branch traversal

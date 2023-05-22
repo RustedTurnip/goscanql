@@ -36,7 +36,7 @@ var (
 				return nil
 			}
 
-			return fmt.Errorf("arrays are not supported, consider using a slice or scanner implementation instead")
+			return fmt.Errorf("arrays are not supported (%s), consider using a slice or scanner implementation instead", t.String())
 		},
 
 		// maps
@@ -48,7 +48,7 @@ var (
 				return nil
 			}
 
-			return fmt.Errorf("maps are not supported, consider using a slice or scanner implementation instead")
+			return fmt.Errorf("maps are not supported (%s), consider using a slice or scanner implementation instead", t.String())
 		},
 
 		// multi-dimensional slice

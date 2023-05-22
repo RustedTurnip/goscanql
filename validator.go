@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	// structVerifiers maintains all assertions that must be made on the raw input type provided
+	// structValidators maintains all assertions that must be made on the raw input type provided
 	// by the user to goscanql.
-	structVerifiers = []func(t reflect.Type) error{
+	structValidators = []func(t reflect.Type) error{
 
 		// input type must be struct
 		func(t reflect.Type) error {
@@ -23,9 +23,9 @@ var (
 		},
 	}
 
-	// fieldVerifiers maintians all assertions that must be made on both the raw input type and
+	// fieldValidators maintians all assertions that must be made on both the raw input type and
 	// any relevant type child fields for goscanql to be able to work.
-	fieldVerifiers = []func(t reflect.Type) error{
+	fieldValidators = []func(t reflect.Type) error{
 
 		// arrays
 		func(t reflect.Type) error {
@@ -74,31 +74,31 @@ var (
 )
 
 // TODO
-func verifyType[T any]() error {
+func validateType[T any]() error {
 
 	// initialise empty instance of type T so we can evaluate it's type
 	var zero T
 	t := reflect.TypeOf(zero)
 
 	// run checks on input type
-	for _, verifier := range structVerifiers {
-		err := verifier(t)
+	for _, validator := range structValidators {
+		err := validator(t)
 		if err != nil {
 			return err
 		}
 	}
 
 	// assert no cyclic-structs
-	// NOTE: this check must happen before the fieldVerifiers check as if there is a cyclic
-	// struct, the fieldVerifiers check will end up in infinite recursion
+	// NOTE: this check must happen before the fieldValidators check as if there is a cyclic
+	// struct, the fieldValidators check will end up in infinite recursion
 	err := verifyNoCycles(t)
 	if err != nil {
 		return err
 	}
 
 	// run checks on all child-types of input type (and additional checks on input type)
-	for _, verifier := range fieldVerifiers {
-		err := traverseType(t, verifier)
+	for _, validator := range fieldValidators {
+		err := traverseType(t, validator)
 		if err != nil {
 			return err
 		}

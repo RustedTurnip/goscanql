@@ -6,72 +6,82 @@ import (
 	"reflect"
 )
 
+type typeValidator func(t reflect.Type) error
+
 var (
 	// structValidators maintains all assertions that must be made on the raw input type provided
 	// by the user to goscanql.
-	structValidators = []func(t reflect.Type) error{
-
-		// input type must be struct
-		func(t reflect.Type) error {
-			t = getPointerRootType(t)
-
-			if t.Kind() == reflect.Struct {
-				return nil
-			}
-
-			return fmt.Errorf("input type (%s) must be of type struct or pointer to struct", t.String())
-		},
+	structValidators = []typeValidator{
+		isStruct,
 	}
 
-	// fieldValidators maintians all assertions that must be made on both the raw input type and
+	// fieldValidators maintains all assertions that must be made on both the raw input type and
 	// any relevant type child fields for goscanql to be able to work.
-	fieldValidators = []func(t reflect.Type) error{
-
-		// arrays
-		func(t reflect.Type) error {
-
-			t = getPointerRootType(t)
-
-			if t.Kind() != reflect.Array {
-				return nil
-			}
-
-			return fmt.Errorf("arrays are not supported (%s), consider using a slice or scanner implementation instead", t.String())
-		},
-
-		// maps
-		func(t reflect.Type) error {
-
-			t = getPointerRootType(t)
-
-			if t.Kind() != reflect.Map {
-				return nil
-			}
-
-			return fmt.Errorf("maps are not supported (%s), consider using a slice or scanner implementation instead", t.String())
-		},
-
-		// multi-dimensional slice
-		func(t reflect.Type) error {
-
-			t = getPointerRootType(t)
-
-			if t.Kind() != reflect.Slice {
-				return nil
-			}
-
-			// get slice type, e.g. []*Example has a slice type of *Example
-			sliceType := t.Elem()
-
-			// get root type (e.g. ***[]string has root type of []string) and assert that it isn't a slice
-			if getPointerRootType(sliceType).Kind() != reflect.Slice {
-				return nil
-			}
-
-			return fmt.Errorf("multi-dimensional slices are not supported (%s), consider using a slice or scanner implementation instead", t.String())
-		},
+	fieldValidators = []typeValidator{
+		isNotArray,
+		isNotMap,
+		isNotMultidimensionalSlice,
 	}
 )
+
+// isStruct takes a reflect.Type (t) and returns an error if it is not a struct (or nil
+// otherwise).
+func isStruct(t reflect.Type) error {
+	t = getPointerRootType(t)
+
+	if t.Kind() == reflect.Struct {
+		return nil
+	}
+
+	return fmt.Errorf("input type (%s) must be of type struct or pointer to struct", t.String())
+}
+
+// isNotArray takes a reflect.Type (t) and returns an error if it is an array (or nil
+// otherwise).
+func isNotArray(t reflect.Type) error {
+
+	t = getPointerRootType(t)
+
+	if t.Kind() != reflect.Array {
+		return nil
+	}
+
+	return fmt.Errorf("arrays are not supported (%s), consider using a slice or scanner implementation instead", t.String())
+}
+
+// isNotMap takes a reflect.Type (t) and returns an error if it is a map (or nil
+// otherwise).
+func isNotMap(t reflect.Type) error {
+
+	t = getPointerRootType(t)
+
+	if t.Kind() != reflect.Map {
+		return nil
+	}
+
+	return fmt.Errorf("maps are not supported (%s), consider using a slice or scanner implementation instead", t.String())
+}
+
+// isNotMultidimensionalSlice takes a reflect.Type (t) and returns an error if
+// it is a multi-dimensional slice (or nil otherwise).
+func isNotMultidimensionalSlice(t reflect.Type) error {
+
+	t = getPointerRootType(t)
+
+	if t.Kind() != reflect.Slice {
+		return nil
+	}
+
+	// get slice type, e.g. []*Example has a slice type of *Example
+	sliceType := t.Elem()
+
+	// get root type (e.g. ***[]string has root type of []string) and assert that it isn't a slice
+	if getPointerRootType(sliceType).Kind() != reflect.Slice {
+		return nil
+	}
+
+	return fmt.Errorf("multi-dimensional slices are not supported (%s), consider using a slice or scanner implementation instead", t.String())
+}
 
 // validateType analyses the provided input type and ensures that it will is valid based on
 // goscanql's input rules (including no cyclic structs).

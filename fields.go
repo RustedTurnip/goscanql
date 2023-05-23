@@ -2,7 +2,6 @@ package goscanql
 
 import (
 	"crypto/sha1"
-	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
@@ -376,10 +375,7 @@ func (f *fields) initialise(prefix string) error {
 	t := rv.Type()
 
 	// if type implements the Scanner interface, add it as is
-	// TODO extract to isScanner func
-	iScanner := reflect.TypeOf((*sql.Scanner)(nil)).Elem()
-	if rv.Type().Implements(iScanner) {
-
+	if isScanner(t) {
 		err := f.addField(prefix, rv.Addr().Interface())
 		if err != nil {
 			return err

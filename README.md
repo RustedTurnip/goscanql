@@ -27,33 +27,6 @@ users, err := goscanql.RowsToStructs[*User](rows)
 
 
 
-## Scanner Interface
-
-If a field implements the Scanner interface, then the SQL value will be passed directly into the field (whether it 
-is a primitive type or not). For example:
-
-```go
-type User struct {
-	Id       sql.NullInt64 `goscanql:"id"`
-	Name     string        `goscanql:"name"`
-	Username string        `goscanql:"username"`
-}
-
-rows, err := db.Query('SELECT * FROM users')
-if err != nil {
-	panic(err)
-}
-
-users, err := goscanql.RowsToStructs[*User](rows)
-...
-```
-
-As sql.NullInt64 implements the scanner interface, the value of the sql query under the column `id` will be passed
-directly into the `sql.NullInt64` struct (whereas otherwise, the `sql.NullInt` struct would have been analysed for 
-sub-fields that have `goscanql` tags).
-
-
-
 ## SQL Joins
 
 This library is particularly useful in aggregating data resulting from SQL joins as it can aggregate parents by 

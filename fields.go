@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// nullBytes re[presents a scannable entity that can be used to determine if the incoming value is
+// nullBytes represents a scannable entity that can be used to determine if the incoming value is
 // nil (but does not store the value).
 type nullBytes struct {
 	isNil bool
@@ -373,16 +373,6 @@ func (f *fields) initialise(prefix string) error {
 
 	rv := rva[0]
 	t := rv.Type()
-
-	// if type implements the Scanner interface, add it as is
-	if isScanner(t) {
-		err := f.addField(prefix, rv.Addr().Interface())
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
 
 	// if time.Time (this triggers when initialise is called for a slice value)
 	if _, ok := rv.Interface().(time.Time); ok {

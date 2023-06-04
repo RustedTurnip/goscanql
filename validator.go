@@ -1,7 +1,6 @@
 package goscanql
 
 import (
-	"database/sql"
 	"fmt"
 	"reflect"
 )
@@ -46,7 +45,7 @@ func isNotArray(t reflect.Type) error {
 		return nil
 	}
 
-	return fmt.Errorf("arrays are not supported (%s), consider using a slice or scanner implementation instead", t.String())
+	return fmt.Errorf("arrays are not supported (%s), consider using a slice instead", t.String())
 }
 
 // isNotMap takes a reflect.Type (t) and returns an error if it is a map (or nil
@@ -59,7 +58,7 @@ func isNotMap(t reflect.Type) error {
 		return nil
 	}
 
-	return fmt.Errorf("maps are not supported (%s), consider using a slice or scanner implementation instead", t.String())
+	return fmt.Errorf("maps are not supported (%s), consider using a slice instead", t.String())
 }
 
 // isNotMultidimensionalSlice takes a reflect.Type (t) and returns an error if
@@ -80,7 +79,7 @@ func isNotMultidimensionalSlice(t reflect.Type) error {
 		return nil
 	}
 
-	return fmt.Errorf("multi-dimensional slices are not supported (%s), consider using a slice or scanner implementation instead", t.String())
+	return fmt.Errorf("multi-dimensional slices are not supported (%s), consider using a slice instead", t.String())
 }
 
 // validateType analyses the provided input type and ensures that it will is valid based on
@@ -193,10 +192,6 @@ func hasCycle(t reflect.Type, m map[reflect.Type]interface{}) bool {
 		fieldType := getSliceRootType(t.Field(i).Type) // strip away slices
 		fieldType = getPointerRootType(fieldType)      // strip away pointers
 
-		if isScanner(fieldType) {
-			continue
-		}
-
 		if fieldType.Kind() != reflect.Struct {
 			continue
 		}
@@ -221,13 +216,6 @@ func hasCycle(t reflect.Type, m map[reflect.Type]interface{}) bool {
 func isGoscanqlField(f reflect.StructField) bool {
 	_, b := f.Tag.Lookup(scanqlTag)
 	return b
-}
-
-// isScanner returns whether the provided reflect.Type (t) implements the sql.Scanner
-// interface.
-func isScanner(t reflect.Type) bool {
-	iScanner := reflect.TypeOf((*sql.Scanner)(nil)).Elem()
-	return t.Implements(iScanner)
 }
 
 // traverseType will recursively traverse the children of the provided type and
@@ -262,11 +250,6 @@ func traverseType(t reflect.Type, f func(t reflect.Type) error) error {
 		// if the field isn't tagged as goscanql, ignore
 		if !isGoscanqlField(t.Field(i)) {
 			continue
-		}
-
-		// if type is scanner, it will have custom Scan logic that supersedes goscanql
-		if isScanner(t) {
-			return nil
 		}
 
 		// traverse field's subtypes

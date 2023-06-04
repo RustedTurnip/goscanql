@@ -94,11 +94,9 @@ func isNotMultidimensionalSlice(t reflect.Type) error {
 
 // validateType analyses the provided input type and ensures that it will is valid based on
 // goscanql's input rules (including no cyclic structs).
-func validateType[T any]() error {
+func validateType(it interface{}) error {
 
-	// initialise empty instance of type T so we can evaluate it's type
-	var zero T
-	t := reflect.TypeOf(zero)
+	t := reflect.TypeOf(it)
 
 	// run checks on input type
 	for _, validator := range structValidators {

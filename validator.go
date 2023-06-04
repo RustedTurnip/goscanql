@@ -59,6 +59,11 @@ func isNotMap(t reflect.Type) error {
 
 	t = getPointerRootType(t)
 
+	// recursively search array/slice types until base type found
+	if t.Kind() == reflect.Array || t.Kind() == reflect.Slice {
+		return isNotMap(t.Elem())
+	}
+
 	if t.Kind() != reflect.Map {
 		return nil
 	}

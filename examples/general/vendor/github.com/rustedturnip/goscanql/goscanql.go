@@ -3,7 +3,6 @@ package goscanql
 import (
 	"database/sql"
 	"fmt"
-	"reflect"
 )
 
 const (
@@ -26,25 +25,6 @@ func mapFieldsToColumns[T any](cols []string, fields map[string]T) []interface{}
 	}
 
 	return values
-}
-
-// validateType asserts that the provided type is compatible with (by being a struct or pointer to a struct)
-// goscanql. If it isn't, an error will be returned.
-func validateType[T any]() error {
-
-	var empty T
-
-	t := reflect.TypeOf(empty)
-
-	for t.Kind() == reflect.Pointer {
-		t = t.Elem()
-	}
-
-	if t.Kind() != reflect.Struct {
-		return fmt.Errorf("unexpected type of (%s) - type should be a struct or pointer to a struct", reflect.TypeOf(empty).String())
-	}
-
-	return nil
 }
 
 func scanRows[T any](rows *sql.Rows) ([]T, error) {

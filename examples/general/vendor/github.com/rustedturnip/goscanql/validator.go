@@ -41,6 +41,11 @@ func isNotArray(t reflect.Type) error {
 
 	t = getPointerRootType(t)
 
+	// recursively search slice types until base type found
+	if t.Kind() == reflect.Slice {
+		return isNotArray(t.Elem())
+	}
+
 	if t.Kind() != reflect.Array {
 		return nil
 	}
@@ -53,6 +58,11 @@ func isNotArray(t reflect.Type) error {
 func isNotMap(t reflect.Type) error {
 
 	t = getPointerRootType(t)
+
+	// recursively search array/slice types until base type found
+	if t.Kind() == reflect.Array || t.Kind() == reflect.Slice {
+		return isNotMap(t.Elem())
+	}
 
 	if t.Kind() != reflect.Map {
 		return nil
@@ -84,11 +94,9 @@ func isNotMultidimensionalSlice(t reflect.Type) error {
 
 // validateType analyses the provided input type and ensures that it will is valid based on
 // goscanql's input rules (including no cyclic structs).
-func validateType[T any]() error {
+func validateType(it interface{}) error {
 
-	// initialise empty instance of type T so we can evaluate it's type
-	var zero T
-	t := reflect.TypeOf(zero)
+	t := reflect.TypeOf(it)
 
 	// run checks on input type
 	for _, validator := range structValidators {

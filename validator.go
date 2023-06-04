@@ -41,6 +41,11 @@ func isNotArray(t reflect.Type) error {
 
 	t = getPointerRootType(t)
 
+	// recursively search slice types until base type found
+	if t.Kind() == reflect.Slice {
+		return isNotArray(t.Elem())
+	}
+
 	if t.Kind() != reflect.Array {
 		return nil
 	}

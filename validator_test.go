@@ -7,6 +7,11 @@ import (
 	"testing"
 )
 
+type cyclicExample struct {
+	Str   string         `goscanql:"str"`
+	Cycle *cyclicExample `goscanql:"cycle"`
+}
+
 func TestIsStruct(t *testing.T) {
 
 	tests := []struct {
@@ -231,6 +236,225 @@ func TestIsNotMultidimensionalSlice(t *testing.T) {
 
 			// Act
 			result := isNotMultidimensionalSlice(rType)
+
+			// Assert
+			assert.Equal(t, test.expected, result)
+		})
+	}
+}
+
+func TestValidateType(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected error
+	}{
+		{
+			name: "StructInput_NoError",
+			input: struct {
+				AValidField struct{} `goscanql:"a_valid_field"`
+			}{},
+			expected: nil,
+		},
+		{
+			name: "PointerStructInput_NoError",
+			input: &struct {
+				AValidField struct{} `goscanql:"a_valid_field"`
+			}{},
+			expected: nil,
+		},
+		{
+			name:     "NonStructInput_ProducesError",
+			input:    []int{},
+			expected: fmt.Errorf("input type ([]int) must be of type struct or pointer to struct"),
+		},
+		{
+			name:     "SliceStructInput_ProducesError",
+			input:    []struct{}{},
+			expected: fmt.Errorf("input type ([]struct {}) must be of type struct or pointer to struct"),
+		},
+		{
+			name: "StructWithArrayInput_ProducesError",
+			input: struct {
+				A [4]int `goscanql:"a"`
+			}{},
+			expected: fmt.Errorf("arrays are not supported ([4]int), consider using a slice instead"),
+		},
+		{
+			name: "StructWithMapInput_ProducesError",
+			input: struct {
+				M map[string]interface{} `goscanql:"m"`
+			}{},
+			expected: fmt.Errorf("maps are not supported (map[string]interface {}), consider using a slice instead"),
+		},
+		{
+			name: "StructWithMultiDimensionalSliceInput_ProducesError",
+			input: struct {
+				MS [][]struct{} `goscanql:"ms"`
+			}{},
+			expected: fmt.Errorf("multi-dimensional slices are not supported ([][]struct {}), consider using a slice instead"),
+		},
+		{
+			name: "StructCycleInput_ProducesError",
+			input: struct {
+				EC cyclicExample `goscanql:"ec"`
+			}{},
+			expected: fmt.Errorf("goscanql does not support cyclic structs: struct { EC goscanql.cyclicExample \"goscanql:\\\"ec\\\"\" }"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			// Act
+			result := validateType(test.input)
+
+			// Assert
+			assert.Equal(t, test.expected, result)
+		})
+	}
+}
+
+func TestGetPointerRootType(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected interface{}
+	}{
+		{
+			name:     "NonPointerType_ReturnsSame",
+			input:    1,
+			expected: 1,
+		},
+		{
+			name:     "PointerType_ReturnsRoot",
+			input:    referenceField(1),
+			expected: 1,
+		},
+		{
+			name:     "SliceType_ReturnsSlice",
+			input:    []string{},
+			expected: []string{},
+		},
+		{
+			name:     "PointerSliceType_ReturnsSlice",
+			input:    &[]string{},
+			expected: []string{},
+		},
+		{
+			name:     "PointerPointerSliceType_ReturnsSlice",
+			input:    referenceField(&[]string{}),
+			expected: []string{},
+		},
+		{
+			name:     "PointerMapType_ReturnsSlice",
+			input:    &map[string]interface{}{},
+			expected: map[string]interface{}{},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			// Assemble
+			input := reflect.TypeOf(test.input)
+			expected := reflect.TypeOf(test.expected)
+
+			// Act
+			result := getPointerRootType(input)
+
+			// Assert
+			assert.Equal(t, expected, result)
+		})
+	}
+}
+
+func TestGetSliceRootType(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected interface{}
+	}{
+		{
+			name:     "NonSlice_ReturnsSame",
+			input:    1, // int
+			expected: 1, // int
+		},
+		{
+			name:     "Slice_ReturnsSliceType",
+			input:    []int{},
+			expected: 1, // int
+		},
+		{
+			name:     "SliceOfIntSlices_ReturnsIntType",
+			input:    [][]int{},
+			expected: 1, // int
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			// Assemble
+			input := reflect.TypeOf(test.input)
+			expected := reflect.TypeOf(test.expected)
+
+			// Act
+			result := getSliceRootType(input)
+
+			// Assert
+			assert.Equal(t, expected, result)
+		})
+	}
+}
+
+type extraNestedCycleExample struct {
+	I     int                           `goscanql:"i"`
+	ENCED extraNestedCycleExampleNested `goscanql:"enced"`
+}
+
+type extraNestedCycleExampleNested struct {
+	ENCE *extraNestedCycleExampleNested `goscanql:"ence"`
+}
+
+func TestVerifyNoCycles(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected error
+	}{
+		{
+			name:     "NonStructType_NoError",
+			input:    1, // int
+			expected: nil,
+		},
+		{
+			name: "CyclicStruct_ProducesError",
+			input: struct {
+				Str string         `goscanql:"str"`
+				CE  *cyclicExample `goscanql:"ce"`
+			}{},
+			expected: fmt.Errorf("goscanql does not support cyclic structs: struct { Str string \"goscanql:\\\"str\\\"\"; CE *goscanql.cyclicExample \"goscanql:\\\"ce\\\"\" }"),
+		},
+		{
+			name:     "NestedCyclicStruct_ProducesError",
+			input:    extraNestedCycleExample{},
+			expected: fmt.Errorf("goscanql does not support cyclic structs: goscanql.extraNestedCycleExample"),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			// Assemble
+			input := reflect.TypeOf(test.input)
+
+			// Act
+			result := verifyNoCycles(input)
 
 			// Assert
 			assert.Equal(t, test.expected, result)

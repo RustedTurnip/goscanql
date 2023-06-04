@@ -2,14 +2,13 @@ package goscanql
 
 import (
 	"crypto/sha1"
-	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
 	"time"
 )
 
-// nullBytes re[presents a scannable entity that can be used to determine if the incoming value is
+// nullBytes represents a scannable entity that can be used to determine if the incoming value is
 // nil (but does not store the value).
 type nullBytes struct {
 	isNil bool
@@ -111,19 +110,6 @@ func (f *fields) addField(name string, value interface{}) error {
 	// assert that field hasn't already been added
 	if _, ok := f.references[name]; ok {
 		return fmt.Errorf("field with name \"%s\" already added", name)
-	}
-
-	// run type checks to ensure that value is supported
-	rv := reflect.ValueOf(value).Elem()
-
-	// cannot support arrays so panic
-	if rv.Kind() == reflect.Array {
-		panic("arrays are not supported, consider using a slice or scanner implementation instead")
-	}
-
-	// cannot support maps so panic
-	if rv.Kind() == reflect.Map {
-		panic("maps are not supported, consider using a slice or scanner implementation instead")
 	}
 
 	// add field to this instance
@@ -387,24 +373,6 @@ func (f *fields) initialise(prefix string) error {
 
 	rv := rva[0]
 	t := rv.Type()
-
-	// if type implements the Scanner interface, add it as is
-	iScanner := reflect.TypeOf((*sql.Scanner)(nil)).Elem()
-	if rv.Type().Implements(iScanner) {
-
-		err := f.addField(prefix, rv.Addr().Interface())
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	// if type is slice, panic as this indicates multi-dimensional slice (this triggers
-	// when initialise is called for a slice value)
-	if rv.Kind() == reflect.Slice {
-		panic("multi-dimensional slices are not supported, consider using a slice or scanner implementation instead")
-	}
 
 	// if time.Time (this triggers when initialise is called for a slice value)
 	if _, ok := rv.Interface().(time.Time); ok {

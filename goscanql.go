@@ -29,7 +29,9 @@ func mapFieldsToColumns[T any](cols []string, fields map[string]T) []interface{}
 
 func scanRows[T any](rows *sql.Rows) ([]T, error) {
 
-	if err := validateType[T](); err != nil {
+	var zero T
+
+	if err := validateType(zero); err != nil {
 		panic(err)
 	}
 

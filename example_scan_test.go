@@ -61,6 +61,7 @@ func ExampleRowsToStructs() {
 
 	// Execute the RowsToStructs from goscanql
 	result, err := RowsToStructs[User](rows)
+	fmt.Println(fmt.Sprintf("FINAL %p", result[2].Vehicles))
 	if err != nil {
 		panic(err)
 	}

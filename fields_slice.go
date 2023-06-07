@@ -1,6 +1,9 @@
 package goscanql
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+)
 
 // fieldsSlice maintains a record of a slice of entities along with the
 // fields representations of those entities to facilitate fields merging.
@@ -20,10 +23,14 @@ type fieldsSlice struct {
 func (fs *fieldsSlice) append(f *fields) {
 
 	parent := reflect.ValueOf(fs.sliceRef).Elem()
+	fmt.Println("APPENDING")
+	fmt.Println(reflect.ValueOf(fs.sliceRef).Elem().Pointer())
 	fParent := reflect.ValueOf(f.slice.sliceRef).Elem()
 
 	parent.Set(reflect.Append(parent, fParent.Index(0)))
 	fs.fields = append(fs.fields, f)
+	fmt.Println("POST APPENDING")
+	fmt.Println(reflect.ValueOf(fs.sliceRef).Elem().Pointer())
 }
 
 // getExisting returns the existing *fields entity that is contained within
@@ -58,6 +65,7 @@ func (fs *fieldsSlice) empty() {
 
 // newFieldsSlice is a fieldsSlice constructor
 func newFieldsSlice(container interface{}, f *fields) *fieldsSlice {
+	fmt.Println(fmt.Sprintf("NEWFIELDSSLICE %s", reflect.TypeOf(container).String()))
 	return &fieldsSlice{
 		sliceRef: container,
 		fields: []*fields{

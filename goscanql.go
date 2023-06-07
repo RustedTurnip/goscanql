@@ -3,6 +3,7 @@ package goscanql
 import (
 	"database/sql"
 	"fmt"
+	"reflect"
 )
 
 const (
@@ -60,10 +61,23 @@ func scanRows[T any](rows *sql.Rows) ([]T, error) {
 		if len(*result) == 0 {
 			result = entry
 			resultFields = fields
+
+			fmt.Println("FIRST")
+			fmt.Println(reflect.ValueOf(result).Elem().Index(0).FieldByName("Vehicles").Pointer())
+			fmt.Println(reflect.ValueOf(resultFields.oneToManys["vehicle"].slice.sliceRef).Elem().Pointer())
 			continue
 		}
 
+		fmt.Println("BEFORE MERGE")
+		fmt.Println(reflect.ValueOf(result).Elem().Index(len(*result) - 1).FieldByName("Vehicles").Pointer())
+		fmt.Println(reflect.ValueOf(reflect.ValueOf(resultFields.slice.sliceRef).Elem().Index(len(*result) - 1).FieldByName("Vehicles").Pointer()))
+		fmt.Println(reflect.ValueOf(resultFields.slice.fields[len(*result)-1].oneToManys["vehicle"].slice.sliceRef).Elem().Pointer())
+
 		err = resultFields.merge(fields)
+		fmt.Println("AFTER MERGE")
+		fmt.Println(reflect.ValueOf(result).Elem().Index(len(*result) - 1).FieldByName("Vehicles").Pointer())
+		fmt.Println(reflect.ValueOf(reflect.ValueOf(resultFields.slice.sliceRef).Elem().Index(len(*result) - 1).FieldByName("Vehicles").Pointer()))
+		fmt.Println(reflect.ValueOf(resultFields.slice.fields[len(*result)-1].oneToManys["vehicle"].slice.sliceRef).Elem().Pointer())
 		if err != nil {
 			return nil, err
 		}

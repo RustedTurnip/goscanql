@@ -437,6 +437,11 @@ func (f *fields) initialise(prefix string) error {
 
 			// evaluate with pointer to new instance (as child because one-to-many relationship)
 			err := f.addNewChild(fieldName, fieldValueRoot.Addr().Interface())
+			fmt.Println(fmt.Sprintf("ADDING NEW SLICE TYPE: %s | LEN: %d | OBJ TYPE: %s", fieldValueRoot.Addr().String(), len(fieldValueAll), reflect.TypeOf(f.obj).String()))
+			fmt.Println(fmt.Sprintf("ADDING NEW SLICE POINTER - FIELD: %v | %s", fieldValueRoot.Pointer(), fieldValue.String()))
+
+			fmt.Println(fmt.Sprintf("--------THENEWEST: %d", fieldValueRoot.Pointer()))
+			fmt.Println(fmt.Sprintf("%d", reflect.ValueOf(f.obj).Elem().FieldByName("Vehicles").Pointer()))
 			if err != nil {
 				return err
 			}
@@ -510,9 +515,15 @@ func (f *fields) merge(m *fields) error {
 			continue
 		}
 
+		fmt.Println("MERGING")
+		fmt.Println(reflect.ValueOf(child.slice.sliceRef).Elem().Pointer())
+
 		if err := child.merge(mChild); err != nil {
 			return err
 		}
+
+		fmt.Println("POST MERGING")
+		fmt.Println(reflect.ValueOf(child.slice.sliceRef).Elem().Pointer())
 	}
 
 	return nil

@@ -35,8 +35,7 @@ func scanRows[T any](rows *sql.Rows) ([]T, error) {
 		panic(err)
 	}
 
-	result := &[]T{}
-	var resultFields *fields
+	result := newRecordMap[T]()
 
 	cols, err := rows.Columns()
 	if err != nil {
@@ -45,9 +44,9 @@ func scanRows[T any](rows *sql.Rows) ([]T, error) {
 
 	for rows.Next() {
 
-		entry := &[]T{}
+		entry := new(T)
 
-		fields, err := newFields(&entry)
+		fields, err := newFields(entry)
 		if err != nil {
 			return nil, err
 		}
@@ -57,19 +56,10 @@ func scanRows[T any](rows *sql.Rows) ([]T, error) {
 			return nil, err
 		}
 
-		if len(*result) == 0 {
-			result = entry
-			resultFields = fields
-			continue
-		}
-
-		err = resultFields.merge(fields)
-		if err != nil {
-			return nil, err
-		}
+		result.merge(fields)
 	}
 
-	return *result, nil
+	return result.entries, nil
 }
 
 // RowsToStructs will take the data in rows (*sql.Rows) as input and return a slice of

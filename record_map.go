@@ -118,9 +118,7 @@ func fieldByTag(tag string, v reflect.Value) *reflect.Value {
 	tv := v.Type()
 
 	for i := 0; i < v.NumField(); i++ {
-
-		// TODO use variable instead of hard coded "goscanql" string
-		if tv.Field(i).Tag.Get("goscanql") != tag {
+		if tv.Field(i).Tag.Get(scanqlTag) != tag {
 			continue
 		}
 

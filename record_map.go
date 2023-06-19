@@ -63,7 +63,7 @@ func (rl recordList) merge(entry *fields, rv *reflect.Value, slice interface{}) 
 		return
 	}
 
-	match := reflect.ValueOf(slice).Elem().Index(f.index)
+	match := getRootValue(reflect.ValueOf(slice).Elem().Index(f.index))
 
 	for fieldName, child := range entry.oneToManys {
 
@@ -103,4 +103,18 @@ func fieldByTag(tag string, v reflect.Value) *reflect.Value {
 	}
 
 	return nil
+}
+
+// getRootValue will traverse the provided reflect.Value (v) until a non-pointer type
+// is reached and return that.
+//
+// Note: if the provided value isn't fully instantiated, i.e. a pointer to a nil value, then
+// this will cause problems when trying to call functions like .Type() on the returned value.
+func getRootValue(v reflect.Value) reflect.Value {
+
+	for v.Kind() == reflect.Pointer {
+		v = v.Elem()
+	}
+
+	return v
 }

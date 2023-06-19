@@ -3,7 +3,6 @@ package goscanql
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -33,7 +32,6 @@ func TestInitialiseFields(t *testing.T) {
 
 	subject := &fields{
 		obj:                  objExample,
-		slice:                nil,
 		orderedFieldNames:    []string{},
 		orderedOneToOneNames: []string{},
 		references:           map[string]interface{}{},
@@ -42,10 +40,9 @@ func TestInitialiseFields(t *testing.T) {
 		oneToManys:           map[string]*fields{},
 	}
 
-	newExpectedChildExampleFields := func(obj interface{}, asSlice bool) *fields {
+	newExpectedChildExampleFields := func(obj interface{}) *fields {
 		f := &fields{
-			obj:   obj,
-			slice: nil,
+			obj: obj,
 			orderedFieldNames: []string{
 				"foo",
 				"bar",
@@ -63,23 +60,11 @@ func TestInitialiseFields(t *testing.T) {
 			oneToManys: map[string]*fields{},
 		}
 
-		if asSlice {
-			f.slice = &fieldsSlice{
-				sliceRef: &[]childExample{
-					{},
-				},
-				fields: []*fields{
-					f,
-				},
-			}
-		}
-
 		return f
 	}
 
 	expected := &fields{
-		obj:   objExample,
-		slice: nil,
+		obj: objExample,
 		orderedFieldNames: []string{
 			"id",
 			"name",
@@ -101,13 +86,13 @@ func TestInitialiseFields(t *testing.T) {
 			"time": {isNil: true},
 		},
 		oneToOnes: map[string]*fields{
-			"child":                 newExpectedChildExampleFields(&childExample{}, false),
-			"child_pointer":         newExpectedChildExampleFields(referenceField(&childExample{}), false),
-			"child_pointer_pointer": newExpectedChildExampleFields(referenceField(referenceField(&childExample{})), false),
+			"child":                 newExpectedChildExampleFields(&childExample{}),
+			"child_pointer":         newExpectedChildExampleFields(referenceField(&childExample{})),
+			"child_pointer_pointer": newExpectedChildExampleFields(referenceField(referenceField(&childExample{}))),
 		},
 		oneToManys: map[string]*fields{
-			"children":         newExpectedChildExampleFields(&childExample{}, true),
-			"children_pointer": newExpectedChildExampleFields(&childExample{}, true),
+			"children":         newExpectedChildExampleFields(&childExample{}),
+			"children_pointer": newExpectedChildExampleFields(&childExample{}),
 		},
 	}
 
@@ -183,9 +168,6 @@ func TestNewFields(t *testing.T) {
 			name: "Simple Slice Input",
 			expected: &fields{
 				obj: &(*testInputs["Simple Slice Input"].(*[]*testExample))[0],
-				slice: &fieldsSlice{
-					sliceRef: testInputs["Simple Slice Input"],
-				},
 				orderedFieldNames: []string{
 					"foo",
 					"bar",
@@ -210,12 +192,6 @@ func TestNewFields(t *testing.T) {
 
 		msg := fmt.Sprintf("%s: failed", test.name)
 
-		// post-process expected *fields where slice is supposed to be instantiated (because test cannot)
-		// reference itself
-		if test.expected.slice != nil {
-			test.expected.slice.fields = append(test.expected.slice.fields, test.expected)
-		}
-
 		// execute sut
 		result, err := newFields(testInputs[test.name])
 
@@ -226,22 +202,6 @@ func TestNewFields(t *testing.T) {
 		// if test errored, continue to next as following assertions are nullified
 		if err != nil {
 			continue
-		}
-
-		// assert pointer equality to ensure that the original inputs are still referenced by the
-		// resulting fields
-		if test.expected.slice != nil {
-
-			// if slice, asser that the sliceRef points to the original input
-			assert.Samef(t, testInputs[test.name], result.slice.sliceRef, msg)
-
-			// and that the fields obj points to the first entry of the slice
-			assert.Samef(t, reflect.ValueOf(testInputs[test.name]).Elem().Index(0).Addr().Interface(), result.obj, msg)
-
-		} else {
-
-			// else if not slice, assert that fields obj points directly to input
-			assert.Samef(t, testInputs[test.name], result.obj, msg)
 		}
 	}
 }
@@ -898,463 +858,5 @@ func TestIsMatch(t *testing.T) {
 
 	for _, test := range tests {
 		assert.Equalf(t, test.expected, test.fields.isMatch(test.comparee), "")
-	}
-}
-
-func TestEmptyNilFields(t *testing.T) {
-
-	type testStruct struct {
-		name string
-	}
-	var nilTestStruct *testStruct
-
-	tests := []struct {
-		name     string
-		fields   *fields
-		expected *fields
-	}{
-		{
-			name: "Empty None Nil Parent, Nil Children",
-			fields: &fields{
-				obj: &testStruct{},
-				nullFields: map[string]*nullBytes{
-					"foo": {isNil: false},
-				},
-				oneToOnes: map[string]*fields{
-					"bar_child": {
-						obj: &testStruct{},
-						nullFields: map[string]*nullBytes{
-							"foo": {isNil: true},
-						},
-					},
-				},
-				oneToManys: map[string]*fields{
-					"many_bar_child": {
-						slice: &fieldsSlice{
-							sliceRef: &[]testStruct{{}},
-						},
-						obj: referenceField(&testStruct{}),
-						nullFields: map[string]*nullBytes{
-							"foo": {isNil: true},
-						},
-					},
-				},
-			},
-			expected: &fields{
-				obj: &testStruct{},
-				nullFields: map[string]*nullBytes{
-					"foo": {isNil: false},
-				},
-				oneToOnes: map[string]*fields{
-					"bar_child": {
-						obj: &testStruct{},
-						nullFields: map[string]*nullBytes{
-							"foo": {isNil: true},
-						},
-					},
-				},
-				oneToManys: map[string]*fields{
-					"many_bar_child": {
-						slice: &fieldsSlice{
-							sliceRef: &[]testStruct{},
-						},
-						obj: referenceField(nilTestStruct),
-						nullFields: map[string]*nullBytes{
-							"foo": {isNil: true},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "Empty Nil Parent, Mixed Children",
-			fields: &fields{
-				obj: &testStruct{
-					name: "Gus",
-				},
-				nullFields: map[string]*nullBytes{
-					"foo": {isNil: false},
-				},
-				oneToOnes: map[string]*fields{
-					"full_bar_child": {
-						obj: &testStruct{
-							name: "full",
-						},
-						nullFields: map[string]*nullBytes{
-							"foo": {isNil: false},
-						},
-					},
-					"empty_foobar_child": {
-						obj: &testStruct{},
-						nullFields: map[string]*nullBytes{
-							"foo": {isNil: true},
-						},
-					},
-				},
-				oneToManys: map[string]*fields{
-					"empty_many_bar_child": {
-						slice: &fieldsSlice{
-							sliceRef: &[]testStruct{{}},
-						},
-						obj: referenceField(&testStruct{}),
-						nullFields: map[string]*nullBytes{
-							"foo": {isNil: true},
-						},
-					},
-					"full_many_bar_child": {
-						slice: &fieldsSlice{
-							sliceRef: &[]testStruct{
-								{
-									name: "full_slice_1",
-								},
-							},
-						},
-						obj: referenceField(nilTestStruct),
-						nullFields: map[string]*nullBytes{
-							"foo": {isNil: false},
-						},
-					},
-				},
-			},
-			expected: &fields{
-				obj: &testStruct{
-					name: "Gus",
-				},
-				nullFields: map[string]*nullBytes{
-					"foo": {isNil: false},
-				},
-				oneToOnes: map[string]*fields{
-					"full_bar_child": {
-						obj: &testStruct{
-							name: "full",
-						},
-						nullFields: map[string]*nullBytes{
-							"foo": {isNil: false},
-						},
-					},
-					"empty_foobar_child": {
-						obj: &testStruct{},
-						nullFields: map[string]*nullBytes{
-							"foo": {isNil: true},
-						},
-					},
-				},
-				oneToManys: map[string]*fields{
-					"empty_many_bar_child": {
-						slice: &fieldsSlice{
-							sliceRef: &[]testStruct{},
-						},
-						obj: referenceField(nilTestStruct),
-						nullFields: map[string]*nullBytes{
-							"foo": {isNil: true},
-						},
-					},
-					"full_many_bar_child": {
-						slice: &fieldsSlice{
-							sliceRef: &[]testStruct{
-								{
-									name: "full_slice_1",
-								},
-							},
-						},
-						obj: referenceField(nilTestStruct),
-						nullFields: map[string]*nullBytes{
-							"foo": {isNil: false},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for _, test := range tests {
-
-		msg := fmt.Sprintf("%s: failed", test.name)
-
-		// execute sut
-		test.fields.emptyNilFields()
-
-		// assert that the expected and result are equal by value
-		assert.Equalf(t, test.expected, test.fields, msg)
-	}
-}
-
-// TODO this test could be improved as it currently only tests a handful of merge possibilities
-// TODO and is long-winded so hard to follow.
-func TestMerge(t *testing.T) {
-
-	type innerObjDef struct {
-		intFoo int
-		intBar int
-	}
-
-	type objDef struct {
-		foo        string
-		bar        string
-		foobar     *innerObjDef
-		foobarMany []innerObjDef
-	}
-
-	mapObjDef := func(def *objDef, slice *[]objDef) *fields {
-		f := &fields{
-			obj: def,
-			orderedFieldNames: []string{
-				"foo",
-				"bar",
-			},
-			references: map[string]interface{}{
-				"foo": &def.foo,
-				"bar": &def.bar,
-			},
-			nullFields: map[string]*nullBytes{
-				"foo": {isNil: false},
-				"bar": {isNil: false},
-			},
-			orderedOneToOneNames: []string{
-				"foobar",
-			},
-			oneToOnes: map[string]*fields{
-				"foobar": {
-					obj: &def.foobar,
-					orderedFieldNames: []string{
-						"intFoo",
-						"intBar",
-					},
-					nullFields: map[string]*nullBytes{
-						"intFoo": {isNil: false},
-						"intBar": {isNil: false},
-					},
-					references: map[string]interface{}{
-						"intFoo": &def.foobar.intFoo,
-						"intBar": &def.foobar.intBar,
-					},
-				},
-			},
-			oneToManys: map[string]*fields{
-				"foobar_many": {
-					obj: &def.foobarMany[0],
-					slice: &fieldsSlice{
-						sliceRef: &def.foobarMany,
-					},
-					orderedFieldNames: []string{
-						"intFoo",
-						"intBar",
-					},
-					references: map[string]interface{}{
-						"intFoo": &def.foobarMany[0].intFoo,
-						"intBar": &def.foobarMany[0].intBar,
-					},
-					nullFields: map[string]*nullBytes{
-						"intFoo": {isNil: false},
-						"intBar": {isNil: false},
-					},
-				},
-			},
-		}
-
-		f.oneToManys["foobar_many"].slice.fields = []*fields{
-			f.oneToManys["foobar_many"],
-		}
-
-		if slice != nil {
-			*slice = append(*slice, *def)
-
-			f.slice = &fieldsSlice{
-				sliceRef: slice,
-				fields: []*fields{
-					f,
-				},
-			}
-		}
-
-		return f
-	}
-
-	tests := []struct {
-		name        string
-		slice       bool
-		inputA      *objDef
-		inputB      *objDef
-		expected    interface{}
-		expectedErr error
-	}{
-		{
-			name:  "Merge Two Successfully (Not Part of Slice)",
-			slice: false,
-			inputA: &objDef{
-				foo: "abc",
-				bar: "def",
-				foobar: &innerObjDef{
-					intFoo: 1,
-					intBar: 2,
-				},
-				foobarMany: []innerObjDef{
-					{
-						intFoo: 1,
-						intBar: 2,
-					},
-				},
-			},
-			inputB: &objDef{
-				foo: "abc",
-				bar: "def",
-				foobar: &innerObjDef{
-					intFoo: 1,
-					intBar: 2,
-				},
-				foobarMany: []innerObjDef{
-					{
-						intFoo: 8,
-						intBar: 9,
-					},
-				},
-			},
-			expected: &objDef{
-				foo: "abc",
-				bar: "def",
-				foobar: &innerObjDef{
-					intFoo: 1,
-					intBar: 2,
-				},
-				foobarMany: []innerObjDef{
-					{
-						intFoo: 1,
-						intBar: 2,
-					},
-					{
-						intFoo: 8,
-						intBar: 9,
-					},
-				},
-			},
-		},
-		{
-			name:  "Merge Two With Collision (Not Part of Slice)",
-			slice: false,
-			inputA: &objDef{
-				foo: "abc",
-				bar: "def",
-				foobar: &innerObjDef{
-					intFoo: 1,
-					intBar: 2,
-				},
-				foobarMany: []innerObjDef{
-					{
-						intFoo: 1,
-						intBar: 2,
-					},
-				},
-			},
-			inputB: &objDef{
-				foo: "abc",
-				bar: "abc",
-				foobar: &innerObjDef{
-					intFoo: 1,
-					intBar: 2,
-				},
-				foobarMany: []innerObjDef{
-					{
-						intFoo: 8,
-						intBar: 9,
-					},
-				},
-			},
-			expected:    nil, // N/A
-			expectedErr: fmt.Errorf("cannot merge fields as their data differs and they do not belong to a slice"),
-		},
-		{
-			name:  "Merge Two Successfully (Part of Slice)",
-			slice: true,
-			inputA: &objDef{
-				foo: "abc",
-				bar: "abc",
-				foobar: &innerObjDef{
-					intFoo: 1,
-					intBar: 2,
-				},
-				foobarMany: []innerObjDef{
-					{
-						intFoo: 1,
-						intBar: 2,
-					},
-				},
-			},
-			inputB: &objDef{
-				foo: "def",
-				bar: "def",
-				foobar: &innerObjDef{
-					intFoo: 1,
-					intBar: 2,
-				},
-				foobarMany: []innerObjDef{
-					{
-						intFoo: 8,
-						intBar: 9,
-					},
-				},
-			},
-			expected: &[]objDef{
-				{
-					foo: "abc",
-					bar: "abc",
-					foobar: &innerObjDef{
-						intFoo: 1,
-						intBar: 2,
-					},
-					foobarMany: []innerObjDef{
-						{
-							intFoo: 1,
-							intBar: 2,
-						},
-					},
-				},
-				{
-					foo: "def",
-					bar: "def",
-					foobar: &innerObjDef{
-						intFoo: 1,
-						intBar: 2,
-					},
-					foobarMany: []innerObjDef{
-						{
-							intFoo: 8,
-							intBar: 9,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for _, test := range tests {
-
-		msg := fmt.Sprintf("%s: failed", test.name)
-
-		var result interface{}
-		var err error
-
-		// if objects belong to slice, prepare by using slice as result instead of the underlying
-		// slice entity
-		if test.slice {
-
-			slice := &[]objDef{}
-			err = mapObjDef(test.inputA, slice).merge(mapObjDef(test.inputB, &[]objDef{}))
-			result = slice
-
-		} else {
-			err = mapObjDef(test.inputA, nil).merge(mapObjDef(test.inputB, nil))
-			result = test.inputA
-		}
-
-		// assert that the expected error was returned
-		assert.Equalf(t, test.expectedErr, err, msg)
-
-		// if an error occurred, skip as other asserts are nullified
-		if err != nil {
-			continue
-		}
-
-		// assert that the expected matches the result by value
-		assert.Equalf(t, test.expected, result, msg)
 	}
 }

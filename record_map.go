@@ -46,19 +46,19 @@ func (rl recordList) insert(entry *fields, rv *reflect.Value, slice interface{})
 	// only perform append if the provided value isn't nil (suggesting that the insert is at
 	// the point in the fields where it needs to be appended). Children after this point don't
 	// need to be appended because they already exist in obj.
-	if rv != nil { // TODO maybe need to check if obj is nil?
+	if rv != nil {
 		srv := reflect.ValueOf(slice).Elem()
 		srv.Set(reflect.Append(srv, *rv))
 	}
 
 	r := record{
-		index:       len(rl), // TODO check this way of setting index will work
+		index:       len(rl),
 		otmChildren: map[string]recordList{},
 	}
 
 	for fieldName, child := range entry.oneToManys {
 		rlChild := recordList{}
-		rlChild.insert(child, nil, nil) // TODO
+		rlChild.insert(child, nil, nil)
 		r.otmChildren[fieldName] = rlChild
 	}
 
@@ -71,14 +71,13 @@ func (rl recordList) insert(entry *fields, rv *reflect.Value, slice interface{})
 // be added as a new value in the one-to-many slice.
 func (rl recordList) merge(entry *fields, rv *reflect.Value, slice interface{}) {
 
-	// TODO should this be in here, it feels like isNil should be more private to fields
 	if entry.isNil() {
 		return
 	}
 
 	f, ok := rl[entry.getHash()]
 	if !ok {
-		rl.insert(entry, rv, slice) // TODO
+		rl.insert(entry, rv, slice)
 		return
 	}
 

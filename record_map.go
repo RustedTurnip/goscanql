@@ -67,7 +67,7 @@ func (rl recordList) merge(entry *fields, rv *reflect.Value, slice interface{}) 
 
 	for fieldName, child := range entry.oneToManys {
 
-		childSlice := fieldByTag(fieldName, match)
+		childSlice := getRootValue(*fieldByTag(fieldName, match))
 		rvChild := reflect.ValueOf(child.obj).Elem()
 
 		f.otmChildren[fieldName].merge(child, &rvChild, childSlice.Addr().Interface())

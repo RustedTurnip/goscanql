@@ -63,6 +63,8 @@ func ExampleRowsToStructs() {
 	inputRows.AddRow(3, "Algernop Krieger", "", "submarine", "black", "...", "swimming pool")
 	inputRows.AddRow(4, "Barry Dylan", "", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH", "space")
 	inputRows.AddRow(4, "Barry Dylan", "", "motorbike", "black", "vroom", "land")
+	inputRows.AddRow(5, "Pam Poovey", nil, "motorbike", "black", "vroom", "land")
+	inputRows.AddRow(5, "Pam Poovey", nil, nil, nil, nil, nil)
 
 	mock.ExpectQuery(exampleQuery).WillReturnRows(inputRows)
 

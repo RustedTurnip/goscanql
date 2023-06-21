@@ -257,6 +257,32 @@ func (f *fields) isMatch(m *fields) bool {
 	return f.getHash() == m.getHash()
 }
 
+func (f *fields) emptyNilFields() {
+
+	if f.isNil() {
+		// empty the object represented by the fields, e.g. *int would be set to nil,
+		// or int would be set to 0.
+		rv := reflect.ValueOf(f.obj).Elem()
+		rv.Set(reflect.New(rv.Type()).Elem())
+		return
+	}
+
+	for _, child := range f.oneToOnes {
+		child.emptyNilFields()
+	}
+
+	for tag, child := range f.oneToManys {
+		if !child.isNil() {
+			child.emptyNilFields()
+			continue
+		}
+
+		slice := getRootValue(*fieldByTag(tag, reflect.ValueOf(f.obj).Elem()))
+		slice.Set(reflect.New(slice.Type()).Elem()) // set to empty slice
+	}
+
+}
+
 // scan will attempt to apply the provided scan function to the fields object
 // by providing it with all the field references so that values can be written.
 func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
@@ -275,6 +301,7 @@ func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
 		return err
 	}
 
+	f.emptyNilFields()
 	return nil
 }
 

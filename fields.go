@@ -277,7 +277,7 @@ func (f *fields) emptyNilFields() {
 			continue
 		}
 
-		slice := getRootValue(*fieldByTag(tag, reflect.ValueOf(f.obj).Elem()))
+		slice := getRootValue(*fieldByTag(tag, getRootValue(reflect.ValueOf(f.obj))))
 		slice.Set(reflect.New(slice.Type()).Elem()) // set to empty slice
 	}
 

@@ -29,6 +29,14 @@ type User struct {
 	Name     string    `goscanql:"name"`
 	Vehicles []Vehicle `goscanql:"vehicle"`
 	Aliases  []string  `goscanql:"alias"`
+	Role     *Role     `goscanql:"role"`
+}
+
+// Role represents the User's position in their organisation, carrying with it any
+// relevant attributes
+type Role struct {
+	Title      string `goscanql:"title"`
+	Department string `goscanql:"department"`
 }
 
 // Vehicle represents an example vehicle struct that you might want to parse data into
@@ -52,19 +60,19 @@ func ExampleRowsToStructs() {
 		panic(err)
 	}
 
-	columns := []string{"id", "name", "alias", "vehicle_type", "vehicle_colour", "vehicle_noise", "vehicle_medium_name"}
+	columns := []string{"id", "name", "role_title", "role_department", "alias", "vehicle_type", "vehicle_colour", "vehicle_noise", "vehicle_medium_name"}
 	inputRows := sqlmock.NewRows(columns)
 
-	inputRows.AddRow(1, "Stirling Archer", "", "car", "black", "brum", "land")
-	inputRows.AddRow(2, "Cheryl Tunt", "Chrystal", "aeroplane", "white", "whoosh", "air")
-	inputRows.AddRow(2, "Cheryl Tunt", "Charlene", "aeroplane", "white", "whoosh", "air")
-	inputRows.AddRow(3, "Algernop Krieger", "", "van", "blue", "brum", "land")
-	inputRows.AddRow(3, "Algernop Krieger", "", "submarine", "black", "...", "sea")
-	inputRows.AddRow(3, "Algernop Krieger", "", "submarine", "black", "...", "swimming pool")
-	inputRows.AddRow(4, "Barry Dylan", "", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH", "space")
-	inputRows.AddRow(4, "Barry Dylan", "", "motorbike", "black", "vroom", "land")
-	inputRows.AddRow(5, "Pam Poovey", nil, "motorbike", "black", "vroom", "land")
-	inputRows.AddRow(5, "Pam Poovey", nil, nil, nil, nil, nil)
+	inputRows.AddRow(1, "Stirling Archer", "field agent", "field operations", "", "car", "black", "brum", "land")
+	inputRows.AddRow(2, "Cheryl Tunt", "secretary", "", "Chrystal", "aeroplane", "white", "whoosh", "air")
+	inputRows.AddRow(2, "Cheryl Tunt", "secretary", "", "Charlene", "aeroplane", "white", "whoosh", "air")
+	inputRows.AddRow(3, "Algernop Krieger", "lab geek", "research & development", "", "van", "blue", "brum", "land")
+	inputRows.AddRow(3, "Algernop Krieger", "lab geek", "research & development", "", "submarine", "black", "...", "sea")
+	inputRows.AddRow(3, "Algernop Krieger", "lab geek", "research & development", "", "submarine", "black", "...", "swimming pool")
+	inputRows.AddRow(4, "Barry Dylan", nil, nil, "", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH", "space")
+	inputRows.AddRow(4, "Barry Dylan", nil, nil, "", "motorbike", "black", "vroom", "land")
+	inputRows.AddRow(5, "Pam Poovey", "hr manager", "human resources", nil, "motorbike", "black", "vroom", "land")
+	inputRows.AddRow(5, "Pam Poovey", "hr manager", "human resources", nil, nil, nil, nil, nil)
 
 	mock.ExpectQuery(exampleQuery).WillReturnRows(inputRows)
 

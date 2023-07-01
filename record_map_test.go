@@ -123,5 +123,105 @@ func Test_getRootValue(t *testing.T) {
 			assert.Equal(t, expected, result)
 		})
 	}
+}
 
+type arbitraryTestStruct struct {
+	Foo  string `goscanql:"foo"`
+	Bars []int  `goscanql:"bars"`
+}
+
+func TestRecordList_insert(t *testing.T) {
+
+	// Arrange
+	inputFields := &fields{
+		obj: &arbitraryTestStruct{
+			Foo:  "foo",
+			Bars: []int{2},
+		},
+		references: map[string]interface{}{
+			"foo": referenceField("foo"),
+		},
+		orderedFieldNames: []string{
+			"foo",
+		},
+		oneToManys: map[string]*fields{
+			"bars": {
+				orderedFieldNames: []string{
+					"bars",
+				},
+				references: map[string]interface{}{
+					"bars": referenceField(1),
+				},
+				nullFields: map[string]*nullBytes{
+					"bars": {
+						isNil: false,
+					},
+				},
+			},
+		},
+	}
+
+	inputSlice := []arbitraryTestStruct{
+		{
+			Foo:  "foo",
+			Bars: []int{2},
+		},
+	}
+
+	inputRecordList := recordList{
+		"arbitraryHash": record{
+			index: 0,
+			otmChildren: map[string]recordList{
+				"bars": {
+					"arbitraryChildHash": record{
+						index:       0,
+						otmChildren: map[string]recordList{},
+					},
+				},
+			},
+		},
+	}
+
+	expectedRecordList := recordList{
+		"arbitraryHash": record{
+			index: 0,
+			otmChildren: map[string]recordList{
+				"bars": {
+					"arbitraryChildHash": record{
+						index:       0,
+						otmChildren: map[string]recordList{},
+					},
+				},
+			},
+		},
+		"\x17\xf6\x95\x180\x8d_*\xd4D08\xb1afM\x8b\xdf\xc0!": record{
+			index: 1,
+			otmChildren: map[string]recordList{
+				"bars": {
+					"\xf47\xdb\xd5}\x00h\x81OC\x8fA{\xa5h\xf4\x9b@Fg": record{
+						index:       0,
+						otmChildren: map[string]recordList{},
+					},
+				},
+			},
+		},
+	}
+
+	expectedSlice := []arbitraryTestStruct{
+		{
+			Foo:  "foo",
+			Bars: []int{2},
+		},
+		{
+			Foo:  "foo",
+			Bars: []int{2},
+		},
+	}
+
+	// Act
+	inputRecordList.insert(inputFields, referenceField(reflect.ValueOf(inputFields.obj).Elem()), &inputSlice)
+
+	// Assert
+	assert.Equal(t, expectedRecordList, inputRecordList)
+	assert.Equal(t, expectedSlice, inputSlice)
 }

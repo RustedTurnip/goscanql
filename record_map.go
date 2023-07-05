@@ -64,7 +64,7 @@ func (rl recordList) insert(entry *fields, rv *reflect.Value, slice interface{})
 		rlChild.insert(child, nil, nil)
 		r.otmChildren[fieldName] = rlChild
 	}
-	
+
 	rl[entry.getHash()] = r
 }
 

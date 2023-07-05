@@ -1,9 +1,10 @@
 package goscanql
 
 import (
-	"fmt"
+	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -13,12 +14,15 @@ const (
 			user.name AS name,
 			user.date_of_birth AS date_of_birth,
 			user_alias.alias AS alias,
+			user_role.title AS role_title,
+			user_role.department AS role_department,
 			vehicle.type AS vehicle_type,
 			vehicle.colour AS vehicle_colour,
 			vehicle.noise AS vehicle_noise,
 			vehicle_medium.name AS vehicle_medium_name
 		FROM user
 		LEFT JOIN user_alias ON user.id=user_alias.user_id
+		LEFT JOIN user_role ON user.role_id=user_role.id
 		LEFT JOIN vehicle ON user.id = vehicle.user_id
         LEFT JOIN vehicle_medium ON vehicle.medium_id=vehicle_medium.id;`
 )
@@ -52,7 +56,7 @@ type VehicleMedium struct {
 	Name string `goscanql:"name"`
 }
 
-func ExampleRowsToStructs() {
+func Test_ExampleRowsToStructs(t *testing.T) {
 
 	// setup the example to allow with mock data
 	db, mock, err := sqlmock.New()
@@ -84,9 +88,148 @@ func ExampleRowsToStructs() {
 	// Execute the RowsToStructs from goscanql
 	result, err := RowsToStructs[User](rows)
 	if err != nil {
-		panic(err)
+		assert.Nil(t, err)
 	}
 
 	// Output: goscanql.User{Id:3, Name:"Algernop Krieger", Vehicles:[]goscanql.Vehicle{goscanql.Vehicle{Medium:"land", Type:"van", Colour:"blue", Noise:"brum"}}}
-	fmt.Printf("%#v", result[2])
+	assert.Equal(t, expectedUsers, result)
 }
+
+var (
+	expectedUsers = []User{
+		{
+			Id:   1,
+			Name: "Stirling Archer",
+			Vehicles: []Vehicle{
+				{
+					Type:   "car",
+					Colour: "black",
+					Noise:  "brum",
+					Mediums: []VehicleMedium{
+						{
+							Name: "land",
+						},
+					},
+				},
+			},
+			Aliases: []string{
+				"",
+			},
+			Role: &Role{
+				Title:      "field agent",
+				Department: "field operations",
+			},
+		},
+		{
+			Id:   2,
+			Name: "Cheryl Tunt",
+			Vehicles: []Vehicle{
+				{
+					Type:   "aeroplane",
+					Colour: "white",
+					Noise:  "whoosh",
+					Mediums: []VehicleMedium{
+						{
+							Name: "air",
+						},
+					},
+				},
+			},
+			Aliases: []string{
+				"Chrystal",
+				"Charlene",
+			},
+			Role: &Role{
+				Title:      "secretary",
+				Department: "",
+			},
+		},
+		{
+			Id:   3,
+			Name: "Algernop Krieger",
+			Vehicles: []Vehicle{
+				{
+					Type:   "van",
+					Colour: "blue",
+					Noise:  "brum",
+					Mediums: []VehicleMedium{
+						{
+							Name: "land",
+						},
+					},
+				},
+				{
+					Type:   "submarine",
+					Colour: "black",
+					Noise:  "...",
+					Mediums: []VehicleMedium{
+						{
+							Name: "sea",
+						},
+						{
+							Name: "swimming pool",
+						},
+					},
+				},
+			},
+			Aliases: []string{
+				"",
+			},
+			Role: &Role{
+				Title:      "lab geek",
+				Department: "research & development",
+			},
+		},
+		{
+			Id:   4,
+			Name: "Barry Dylan",
+			Vehicles: []Vehicle{
+				{
+					Type:   "spaceship",
+					Colour: "grey",
+					Noise:  "RRRRRRRRRRRRRRRRRRGGHHHH",
+					Mediums: []VehicleMedium{
+						{
+							Name: "space",
+						},
+					},
+				},
+				{
+					Type:   "motorbike",
+					Colour: "black",
+					Noise:  "vroom",
+					Mediums: []VehicleMedium{
+						{
+							Name: "land",
+						},
+					},
+				},
+			},
+			Aliases: []string{
+				"",
+			},
+			Role: nil,
+		},
+		{
+			Id:   5,
+			Name: "Pam Poovey",
+			Vehicles: []Vehicle{
+				{
+					Type:   "motorbike",
+					Colour: "black",
+					Noise:  "vroom",
+					Mediums: []VehicleMedium{
+						{
+							Name: "land",
+						},
+					},
+				},
+			},
+			Aliases: nil,
+			Role: &Role{
+				Title:      "hr manager",
+				Department: "human resources",
+			},
+		},
+	}
+)

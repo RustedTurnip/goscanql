@@ -130,10 +130,8 @@ type arbitraryTestStruct struct {
 	Bars []int  `goscanql:"bars"`
 }
 
-func TestRecordList_insert(t *testing.T) {
-
-	// Arrange
-	inputFields := &fields{
+func generateTestFields() *fields {
+	return &fields{
 		obj: &arbitraryTestStruct{
 			Foo:  "foo",
 			Bars: []int{2},
@@ -141,16 +139,22 @@ func TestRecordList_insert(t *testing.T) {
 		references: map[string]interface{}{
 			"foo": referenceField("foo"),
 		},
+		nullFields: map[string]*nullBytes{
+			"foo": {
+				isNil: false,
+			},
+		},
 		orderedFieldNames: []string{
 			"foo",
 		},
 		oneToManys: map[string]*fields{
 			"bars": {
+				obj: referenceField(2),
 				orderedFieldNames: []string{
 					"bars",
 				},
 				references: map[string]interface{}{
-					"bars": referenceField(1),
+					"bars": referenceField(2),
 				},
 				nullFields: map[string]*nullBytes{
 					"bars": {
@@ -160,6 +164,12 @@ func TestRecordList_insert(t *testing.T) {
 			},
 		},
 	}
+}
+
+func TestRecordList_insert(t *testing.T) {
+
+	// Arrange
+	inputFields := generateTestFields()
 
 	inputSlice := []arbitraryTestStruct{
 		{
@@ -198,7 +208,7 @@ func TestRecordList_insert(t *testing.T) {
 			index: 1,
 			otmChildren: map[string]recordList{
 				"bars": {
-					"\xf47\xdb\xd5}\x00h\x81OC\x8fA{\xa5h\xf4\x9b@Fg": record{
+					"\xfa\nT\x88\xd6z1\xed\xa3\x1d\xcfzhr\xfe\x1d\x82O\x8cf": record{
 						index:       0,
 						otmChildren: map[string]recordList{},
 					},
@@ -224,4 +234,173 @@ func TestRecordList_insert(t *testing.T) {
 	// Assert
 	assert.Equal(t, expectedRecordList, inputRecordList)
 	assert.Equal(t, expectedSlice, inputSlice)
+}
+
+func TestRecordList_merge(t *testing.T) {
+
+	tests := []struct {
+		name               string
+		inputSlice         []arbitraryTestStruct
+		inputRecordList    recordList
+		expectedSlice      []arbitraryTestStruct
+		expectedRecordList recordList
+	}{
+		{
+			name: "GivenMergeWithNonMatchingParentAndChild_ThenParentAndChildAreInserted",
+			inputSlice: []arbitraryTestStruct{
+				{
+					Foo:  "not_foo",
+					Bars: []int{1},
+				},
+			},
+			inputRecordList: recordList{
+				"\xe7\x10\x1am\xa1\x1a\xe5\x00|\n3\u008a\xc3\x16I\xbf\xd9f\xa0": record{
+					index: 0,
+					otmChildren: map[string]recordList{
+						"bars": {
+							"\xf47\xdb\xd5}\x00h\x81OC\x8fA{\xa5h\xf4\x9b@Fg": record{
+								index:       0,
+								otmChildren: map[string]recordList{},
+							},
+						},
+					},
+				},
+			},
+			expectedSlice: []arbitraryTestStruct{
+				{
+					Foo:  "not_foo",
+					Bars: []int{1},
+				},
+				{
+					Foo:  "foo",
+					Bars: []int{2},
+				},
+			},
+			expectedRecordList: recordList{
+				"\xe7\x10\x1am\xa1\x1a\xe5\x00|\n3\u008a\xc3\x16I\xbf\xd9f\xa0": record{
+					index: 0,
+					otmChildren: map[string]recordList{
+						"bars": {
+							"\xf47\xdb\xd5}\x00h\x81OC\x8fA{\xa5h\xf4\x9b@Fg": record{
+								index:       0,
+								otmChildren: map[string]recordList{},
+							},
+						},
+					},
+				},
+				"\x17\xf6\x95\x180\x8d_*\xd4D08\xb1afM\x8b\xdf\xc0!": record{
+					index: 1,
+					otmChildren: map[string]recordList{
+						"bars": {
+							"\xfa\nT\x88\xd6z1\xed\xa3\x1d\xcfzhr\xfe\x1d\x82O\x8cf": record{
+								index:       0,
+								otmChildren: map[string]recordList{},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "GivenMergeWithMatchingParentButNotChild_ThenOnlyChildIsInserted",
+			inputSlice: []arbitraryTestStruct{
+				{
+					Foo:  "foo",
+					Bars: []int{1},
+				},
+			},
+			inputRecordList: recordList{
+				"\x17\xf6\x95\x180\x8d_*\xd4D08\xb1afM\x8b\xdf\xc0!": record{
+					index: 0,
+					otmChildren: map[string]recordList{
+						"bars": {
+							"\xf47\xdb\xd5}\x00h\x81OC\x8fA{\xa5h\xf4\x9b@Fg": record{
+								index:       0,
+								otmChildren: map[string]recordList{},
+							},
+						},
+					},
+				},
+			},
+			expectedSlice: []arbitraryTestStruct{
+				{
+					Foo:  "foo",
+					Bars: []int{1, 2},
+				},
+			},
+			expectedRecordList: recordList{
+				"\x17\xf6\x95\x180\x8d_*\xd4D08\xb1afM\x8b\xdf\xc0!": record{
+					index: 0,
+					otmChildren: map[string]recordList{
+						"bars": {
+							"\xf47\xdb\xd5}\x00h\x81OC\x8fA{\xa5h\xf4\x9b@Fg": record{
+								index:       0,
+								otmChildren: map[string]recordList{},
+							},
+							"\xfa\nT\x88\xd6z1\xed\xa3\x1d\xcfzhr\xfe\x1d\x82O\x8cf": record{
+								index:       1,
+								otmChildren: map[string]recordList{},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "GivenMergeWithMatchingParentAndChild_ThenNothingIsInserted",
+			inputSlice: []arbitraryTestStruct{
+				{
+					Foo:  "foo",
+					Bars: []int{2},
+				},
+			},
+			inputRecordList: recordList{
+				"\x17\xf6\x95\x180\x8d_*\xd4D08\xb1afM\x8b\xdf\xc0!": record{
+					index: 0,
+					otmChildren: map[string]recordList{
+						"bars": {
+							"\xfa\nT\x88\xd6z1\xed\xa3\x1d\xcfzhr\xfe\x1d\x82O\x8cf": record{
+								index:       0,
+								otmChildren: map[string]recordList{},
+							},
+						},
+					},
+				},
+			},
+			expectedSlice: []arbitraryTestStruct{
+				{
+					Foo:  "foo",
+					Bars: []int{2},
+				},
+			},
+			expectedRecordList: recordList{
+				"\x17\xf6\x95\x180\x8d_*\xd4D08\xb1afM\x8b\xdf\xc0!": record{
+					index: 0,
+					otmChildren: map[string]recordList{
+						"bars": {
+							"\xfa\nT\x88\xd6z1\xed\xa3\x1d\xcfzhr\xfe\x1d\x82O\x8cf": record{
+								index:       0,
+								otmChildren: map[string]recordList{},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			// Arrange
+			inputFields := generateTestFields()
+
+			// Act
+			test.inputRecordList.merge(inputFields, referenceField(reflect.ValueOf(inputFields.obj).Elem()), &test.inputSlice)
+
+			// Assert
+			assert.Equal(t, test.expectedRecordList, test.inputRecordList)
+			assert.Equal(t, test.expectedSlice, test.inputSlice)
+		})
+	}
 }

@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	exampleQuery = `
+	scanTestQuery = `
 		SELECT
 			user.id AS id,
 			user.name AS name,
@@ -28,31 +28,31 @@ const (
 )
 
 // User represents an example user struct that you might want to parse data into
-type User struct {
-	Id       int       `goscanql:"id"`
-	Name     string    `goscanql:"name"`
-	Vehicles []Vehicle `goscanql:"vehicle"`
-	Aliases  []string  `goscanql:"alias"`
-	Role     *Role     `goscanql:"role"`
+type TestUser struct {
+	Id       int           `goscanql:"id"`
+	Name     string        `goscanql:"name"`
+	Vehicles []TestVehicle `goscanql:"vehicle"`
+	Aliases  []string      `goscanql:"alias"`
+	Role     *TestRole     `goscanql:"role"`
 }
 
 // Role represents the User's position in their organisation, carrying with it any
 // relevant attributes
-type Role struct {
+type TestRole struct {
 	Title      string `goscanql:"title"`
 	Department string `goscanql:"department"`
 }
 
 // Vehicle represents an example vehicle struct that you might want to parse data into
-type Vehicle struct {
-	Type    string          `goscanql:"type"`
-	Colour  string          `goscanql:"colour"`
-	Noise   string          `goscanql:"noise"`
-	Mediums []VehicleMedium `goscanql:"medium"`
+type TestVehicle struct {
+	Type    string              `goscanql:"type"`
+	Colour  string              `goscanql:"colour"`
+	Noise   string              `goscanql:"noise"`
+	Mediums []TestVehicleMedium `goscanql:"medium"`
 }
 
 // VehicleMedium represents the "medium" upon which a vehicle operates
-type VehicleMedium struct {
+type TestVehicleMedium struct {
 	Name string `goscanql:"name"`
 }
 
@@ -88,7 +88,7 @@ func Test_ExampleRowsToStructs(t *testing.T) {
 
 	// Act
 	// Execute the RowsToStructs from goscanql
-	result, err := RowsToStructs[User](rows)
+	result, err := RowsToStructs[TestUser](rows)
 
 	// Assert
 	assert.Nil(t, err)
@@ -96,16 +96,16 @@ func Test_ExampleRowsToStructs(t *testing.T) {
 }
 
 var (
-	expectedUsers = []User{
+	expectedUsers = []TestUser{
 		{
 			Id:   1,
 			Name: "Stirling Archer",
-			Vehicles: []Vehicle{
+			Vehicles: []TestVehicle{
 				{
 					Type:   "car",
 					Colour: "black",
 					Noise:  "brum",
-					Mediums: []VehicleMedium{
+					Mediums: []TestVehicleMedium{
 						{
 							Name: "land",
 						},
@@ -115,7 +115,7 @@ var (
 			Aliases: []string{
 				"",
 			},
-			Role: &Role{
+			Role: &TestRole{
 				Title:      "field agent",
 				Department: "field operations",
 			},
@@ -123,12 +123,12 @@ var (
 		{
 			Id:   2,
 			Name: "Cheryl Tunt",
-			Vehicles: []Vehicle{
+			Vehicles: []TestVehicle{
 				{
 					Type:   "aeroplane",
 					Colour: "white",
 					Noise:  "whoosh",
-					Mediums: []VehicleMedium{
+					Mediums: []TestVehicleMedium{
 						{
 							Name: "air",
 						},
@@ -139,7 +139,7 @@ var (
 				"Chrystal",
 				"Charlene",
 			},
-			Role: &Role{
+			Role: &TestRole{
 				Title:      "secretary",
 				Department: "",
 			},
@@ -147,12 +147,12 @@ var (
 		{
 			Id:   3,
 			Name: "Algernop Krieger",
-			Vehicles: []Vehicle{
+			Vehicles: []TestVehicle{
 				{
 					Type:   "van",
 					Colour: "blue",
 					Noise:  "brum",
-					Mediums: []VehicleMedium{
+					Mediums: []TestVehicleMedium{
 						{
 							Name: "land",
 						},
@@ -162,7 +162,7 @@ var (
 					Type:   "submarine",
 					Colour: "black",
 					Noise:  "...",
-					Mediums: []VehicleMedium{
+					Mediums: []TestVehicleMedium{
 						{
 							Name: "sea",
 						},
@@ -175,7 +175,7 @@ var (
 			Aliases: []string{
 				"",
 			},
-			Role: &Role{
+			Role: &TestRole{
 				Title:      "lab geek",
 				Department: "research & development",
 			},
@@ -183,12 +183,12 @@ var (
 		{
 			Id:   4,
 			Name: "Barry Dylan",
-			Vehicles: []Vehicle{
+			Vehicles: []TestVehicle{
 				{
 					Type:   "spaceship",
 					Colour: "grey",
 					Noise:  "RRRRRRRRRRRRRRRRRRGGHHHH",
-					Mediums: []VehicleMedium{
+					Mediums: []TestVehicleMedium{
 						{
 							Name: "space",
 						},
@@ -198,7 +198,7 @@ var (
 					Type:   "motorbike",
 					Colour: "black",
 					Noise:  "vroom",
-					Mediums: []VehicleMedium{
+					Mediums: []TestVehicleMedium{
 						{
 							Name: "land",
 						},
@@ -213,12 +213,12 @@ var (
 		{
 			Id:   5,
 			Name: "Pam Poovey",
-			Vehicles: []Vehicle{
+			Vehicles: []TestVehicle{
 				{
 					Type:   "motorbike",
 					Colour: "black",
 					Noise:  "vroom",
-					Mediums: []VehicleMedium{
+					Mediums: []TestVehicleMedium{
 						{
 							Name: "land",
 						},
@@ -226,7 +226,7 @@ var (
 				},
 			},
 			Aliases: nil,
-			Role: &Role{
+			Role: &TestRole{
 				Title:      "hr manager",
 				Department: "human resources",
 			},

@@ -58,6 +58,7 @@ type VehicleMedium struct {
 
 func Test_ExampleRowsToStructs(t *testing.T) {
 
+	// Arrange
 	// setup the example to allow with mock data
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -85,13 +86,12 @@ func Test_ExampleRowsToStructs(t *testing.T) {
 		panic(err)
 	}
 
+	// Act
 	// Execute the RowsToStructs from goscanql
 	result, err := RowsToStructs[User](rows)
-	if err != nil {
-		assert.Nil(t, err)
-	}
 
-	// Output: goscanql.User{Id:3, Name:"Algernop Krieger", Vehicles:[]goscanql.Vehicle{goscanql.Vehicle{Medium:"land", Type:"van", Colour:"blue", Noise:"brum"}}}
+	// Assert
+	assert.Nil(t, err)
 	assert.Equal(t, expectedUsers, result)
 }
 

@@ -12,7 +12,6 @@ const (
 		SELECT
 			user.id AS id,
 			user.name AS name,
-			user.date_of_birth AS date_of_birth,
 			user_alias.alias AS alias,
 			user_role.title AS role_title,
 			user_role.department AS role_department,
@@ -79,9 +78,9 @@ func Test_ExampleRowsToStructs(t *testing.T) {
 	inputRows.AddRow(5, "Pam Poovey", "hr manager", "human resources", nil, "motorbike", "black", "vroom", "land")
 	inputRows.AddRow(5, "Pam Poovey", "hr manager", "human resources", nil, nil, nil, nil, nil)
 
-	mock.ExpectQuery(exampleQuery).WillReturnRows(inputRows)
+	mock.ExpectQuery(scanTestQuery).WillReturnRows(inputRows)
 
-	rows, err := db.Query(exampleQuery)
+	rows, err := db.Query(scanTestQuery)
 	if err != nil {
 		panic(err)
 	}

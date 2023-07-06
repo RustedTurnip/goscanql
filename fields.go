@@ -34,10 +34,6 @@ type fields struct {
 	// obj is a reference (pointer) to the struct that this fields fields belong to.
 	obj interface{}
 
-	// slice represents the slice that the struct is a part of. If the struct isn't a part
-	// of a slice, this will be nil.
-	slice *fieldsSlice
-
 	// orderedFieldNames maintains the field names in the order of which they were added
 	// to facilitate reliable hashing when comparing fields entities.
 	orderedFieldNames []string
@@ -261,31 +257,30 @@ func (f *fields) isMatch(m *fields) bool {
 	return f.getHash() == m.getHash()
 }
 
-// emptyNilFields will nullify where possible any nil objects that are represented by the fields.
 func (f *fields) emptyNilFields() {
 
-	// if the fields values are nil
 	if f.isNil() {
-
-		// if the object belongs to a slice, empty that
-		if f.slice != nil {
-			f.slice.empty()
-		}
-
 		// empty the object represented by the fields, e.g. *int would be set to nil,
 		// or int would be set to 0.
 		rv := reflect.ValueOf(f.obj).Elem()
 		rv.Set(reflect.New(rv.Type()).Elem())
+		return
 	}
 
-	// repeat for all children
 	for _, child := range f.oneToOnes {
 		child.emptyNilFields()
 	}
 
-	for _, child := range f.oneToManys {
-		child.emptyNilFields()
+	for tag, child := range f.oneToManys {
+		if !child.isNil() {
+			child.emptyNilFields()
+			continue
+		}
+
+		slice := getRootValue(*fieldByTag(tag, getRootValue(reflect.ValueOf(f.obj))))
+		slice.Set(reflect.New(slice.Type()).Elem()) // set to empty slice
 	}
+
 }
 
 // scan will attempt to apply the provided scan function to the fields object
@@ -307,7 +302,6 @@ func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
 	}
 
 	f.emptyNilFields()
-
 	return nil
 }
 
@@ -348,12 +342,6 @@ func newFields(obj interface{}) (*fields, error) {
 		nullFields:           make(map[string]*nullBytes),
 		oneToOnes:            make(map[string]*fields),
 		oneToManys:           make(map[string]*fields),
-	}
-
-	// if slice, set the fields slice to be the slice so we can append to it during
-	// fields.merge
-	if rv.Kind() == reflect.Slice {
-		fields.slice = newFieldsSlice(rv.Addr().Interface(), fields)
 	}
 
 	// initialise the newly created fields around the obj being pointed to
@@ -447,70 +435,6 @@ func (f *fields) initialise(prefix string) error {
 		// add field to map
 		err := f.addField(fieldName, rv.Field(i).Addr().Interface())
 		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// merge will attempt to merge the provided fields (m) to the fields being called upon.
-// This merge will result in any differing elements being added along side the current
-// element if they are different but belong to a slice.
-//
-// If the parent element is the same, the merge will apply to oneToManys of the parent
-// and leave the parent untouched.
-//
-// If the parent and provided fields are different and do not belong to a slice in which
-// they can coexist, an error will be returned.
-func (f *fields) merge(m *fields) error {
-
-	// if nothing to merge, return
-	if m.isNil() {
-		return nil
-	}
-
-	var existing *fields
-
-	// if element doesn't belong to a slice
-	if f.slice == nil {
-
-		// and the provided element doesn't match the current element
-		// then fail merge as they are different so oneToManys cannot be merged
-		if !f.isMatch(m) {
-			return fmt.Errorf("cannot merge fields as their data differs and they do not belong to a slice")
-		}
-
-		// if the provided fields matches the current fields, set existing to be
-		// current
-		existing = f
-
-	} else {
-
-		// else, if container isn't nil, set existing to be any existing entity with
-		// same hash
-		existing = f.slice.getExisting(m)
-
-		// if *fields doesn't already exist, add it as new
-		if existing == nil {
-			f.slice.append(m)
-			return nil
-		}
-	}
-
-	// for each of existing fields oneToManys, merge with incoming fields
-	for name, child := range existing.oneToManys {
-
-		mChild, ok := m.oneToManys[name]
-		if !ok {
-			return fmt.Errorf("provided fields is missing expected child \"%s\"", name)
-		}
-
-		if mChild.isNil() {
-			continue
-		}
-
-		if err := child.merge(mChild); err != nil {
 			return err
 		}
 	}

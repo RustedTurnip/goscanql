@@ -65,6 +65,6 @@ func ExampleRowsToStructs() {
 		panic(err)
 	}
 
-	// Output: goscanql.User{Id:3, Name:"Algernop Krieger", Vehicles:[]goscanql.Vehicle{goscanql.Vehicle{Medium:"land", Type:"van", Colour:"blue", Noise:"brum"}}}
+	// Output: goscanql.User{Id:3, Name:"Algernop Krieger", Vehicles:[]goscanql.Vehicle{goscanql.Vehicle{Medium:"land", Type:"van", Colour:"blue", Noise:"brum"}, goscanql.Vehicle{Medium:"sea", Type:"submarine", Colour:"black", Noise:"..."}}}
 	fmt.Printf("%#v", result[2])
 }

@@ -243,6 +243,70 @@ func TestIsNotMultidimensionalSlice(t *testing.T) {
 	}
 }
 
+func TestIsNotFunc(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected error
+	}{
+		{
+			name:     "Func_ProducesError",
+			input:    func() {},
+			expected: fmt.Errorf("functions are not supported (func())"),
+		},
+		{
+			name:     "PointerToFunc_ProducesError",
+			input:    referenceField(func() {}),
+			expected: fmt.Errorf("functions are not supported (func())"),
+		},
+		{
+			name:     "SliceFunc_ProducesError",
+			input:    []func(){},
+			expected: fmt.Errorf("functions are not supported (func())"),
+		},
+		{
+			name:     "MultiDimensionalSliceFunc_ProducesError",
+			input:    [][]func(){},
+			expected: fmt.Errorf("functions are not supported (func())"),
+		},
+		{
+			name:     "ArrayFunc_ProducesError",
+			input:    [4]func(){},
+			expected: fmt.Errorf("functions are not supported (func())"),
+		},
+		{
+			name:     "SliceArrayFunc_ProducesError",
+			input:    [][4]func(){},
+			expected: fmt.Errorf("functions are not supported (func())"),
+		},
+		{
+			name:     "Struct_NoError",
+			input:    struct{}{},
+			expected: nil,
+		},
+		{
+			name:     "PrimitiveType_NoError",
+			input:    "",
+			expected: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			// Arrange
+			rType := reflect.TypeOf(test.input)
+
+			// Act
+			result := isNotFunc(rType)
+
+			// Assert
+			assert.Equal(t, test.expected, result)
+		})
+	}
+}
+
 func TestValidateType(t *testing.T) {
 
 	tests := []struct {
@@ -294,6 +358,13 @@ func TestValidateType(t *testing.T) {
 				MS [][]struct{} `goscanql:"ms"`
 			}{},
 			expected: fmt.Errorf("multi-dimensional slices are not supported ([][]struct {}), consider using a slice instead"),
+		},
+		{
+			name: "StructWithFuncInput_ProducesError",
+			input: struct {
+				Fn func() `goscanql:"fn"`
+			}{},
+			expected: fmt.Errorf("functions are not supported (func())"),
 		},
 		{
 			name: "StructCycleInput_ProducesError",

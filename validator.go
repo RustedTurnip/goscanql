@@ -20,6 +20,7 @@ var (
 		isNotArray,
 		isNotMap,
 		isNotMultidimensionalSlice,
+		isNotFunc,
 	}
 )
 
@@ -90,6 +91,24 @@ func isNotMultidimensionalSlice(t reflect.Type) error {
 	}
 
 	return fmt.Errorf("multi-dimensional slices are not supported (%s), consider using a slice instead", t.String())
+}
+
+// isNotFunc takes a reflect.Type (t) and returns an error if it is a function (or
+// the nested type is slice/array) or nil otherwise.
+func isNotFunc(t reflect.Type) error {
+
+	t = getPointerRootType(t)
+
+	// recursively search array/slice types until base type found
+	if t.Kind() == reflect.Array || t.Kind() == reflect.Slice {
+		return isNotFunc(t.Elem())
+	}
+
+	if t.Kind() != reflect.Func {
+		return nil
+	}
+
+	return fmt.Errorf("functions are not supported (%s)", t.String())
 }
 
 // validateType analyses the provided input type and ensures that it will is valid based on

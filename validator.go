@@ -21,6 +21,7 @@ var (
 		isNotMap,
 		isNotMultidimensionalSlice,
 		isNotFunc,
+		isNotChan,
 	}
 )
 
@@ -94,7 +95,7 @@ func isNotMultidimensionalSlice(t reflect.Type) error {
 }
 
 // isNotFunc takes a reflect.Type (t) and returns an error if it is a function (or
-// the nested type is slice/array) or nil otherwise.
+// the nested type if it is a slice/array) or nil otherwise.
 func isNotFunc(t reflect.Type) error {
 
 	t = getPointerRootType(t)
@@ -109,6 +110,24 @@ func isNotFunc(t reflect.Type) error {
 	}
 
 	return fmt.Errorf("functions are not supported (%s)", t.String())
+}
+
+// isNotChan takes a reflect.Type (t) and returns an error if it is a chan (or
+// the nested type if it is a slice/array) or nil otherwise.
+func isNotChan(t reflect.Type) error {
+
+	t = getPointerRootType(t)
+
+	// recursively search array/slice types until base type found
+	if t.Kind() == reflect.Array || t.Kind() == reflect.Slice {
+		return isNotChan(t.Elem())
+	}
+
+	if t.Kind() != reflect.Chan {
+		return nil
+	}
+
+	return fmt.Errorf("channels are not supported (%s)", t.String())
 }
 
 // validateType analyses the provided input type and ensures that it will is valid based on

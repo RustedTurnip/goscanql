@@ -307,6 +307,70 @@ func TestIsNotFunc(t *testing.T) {
 	}
 }
 
+func TestIsNotChan(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected error
+	}{
+		{
+			name:     "Chan_ProducesError",
+			input:    make(chan int),
+			expected: fmt.Errorf("channels are not supported (chan int)"),
+		},
+		{
+			name:     "PointerToChan_ProducesError",
+			input:    referenceField(make(chan int)),
+			expected: fmt.Errorf("channels are not supported (chan int)"),
+		},
+		{
+			name:     "SliceChan_ProducesError",
+			input:    []chan int{},
+			expected: fmt.Errorf("channels are not supported (chan int)"),
+		},
+		{
+			name:     "MultiDimensionalSliceChan_ProducesError",
+			input:    [][]chan int{},
+			expected: fmt.Errorf("channels are not supported (chan int)"),
+		},
+		{
+			name:     "ArrayChan_ProducesError",
+			input:    [4]chan int{},
+			expected: fmt.Errorf("channels are not supported (chan int)"),
+		},
+		{
+			name:     "SliceArrayChan_ProducesError",
+			input:    [][4]chan int{},
+			expected: fmt.Errorf("channels are not supported (chan int)"),
+		},
+		{
+			name:     "Struct_NoError",
+			input:    struct{}{},
+			expected: nil,
+		},
+		{
+			name:     "PrimitiveType_NoError",
+			input:    "",
+			expected: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			// Arrange
+			rType := reflect.TypeOf(test.input)
+
+			// Act
+			result := isNotChan(rType)
+
+			// Assert
+			assert.Equal(t, test.expected, result)
+		})
+	}
+}
+
 func TestValidateType(t *testing.T) {
 
 	tests := []struct {
@@ -365,6 +429,13 @@ func TestValidateType(t *testing.T) {
 				Fn func() `goscanql:"fn"`
 			}{},
 			expected: fmt.Errorf("functions are not supported (func())"),
+		},
+		{
+			name: "StructWithChanInput_ProducesError",
+			input: struct {
+				Ch chan int `goscanql:"ch"`
+			}{},
+			expected: fmt.Errorf("channels are not supported (chan int)"),
 		},
 		{
 			name: "StructCycleInput_ProducesError",

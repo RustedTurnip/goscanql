@@ -604,8 +604,6 @@ func instantiateValue(val reflect.Value) []reflect.Value {
 // pointer is required for the type to modify its attributes and affect the original.
 func asScanner(value reflect.Value) Scanner {
 
-	fmt.Println(value.Type().String())
-
 	if value.Type().Kind() != reflect.Pointer {
 		value = value.Addr()
 	}

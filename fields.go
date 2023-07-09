@@ -411,7 +411,7 @@ func (f *fields) initialise(prefix string) error {
 	rv := rva[0]
 	t := rv.Type()
 
-	// TODO comment this
+	// if type implements the Scanner interface (this triggers when initialise is called for a slice value)
 	if implementsScanner(reflect.TypeOf(f.obj)) {
 		err := f.addScanner(prefix, f.obj.(Scanner))
 		if err != nil {
@@ -499,40 +499,6 @@ func (f *fields) initialise(prefix string) error {
 				return f.addField(fieldName, rv.Field(i).Addr().Interface())
 			}
 		}
-
-		// if nested struct
-		//if fieldValueRoot.Kind() == reflect.Struct {
-		//
-		//	// and if struct is not time
-		//	if _, ok := fieldValueRoot.Interface().(time.Time); !ok {
-		//
-		//		// evaluate as part of this struct (as one-to-one relationship)
-		//		err := f.addNewChild(fieldName, fieldValueAll[len(fieldValueAll)-1].Addr().Interface())
-		//		if err != nil {
-		//			return err
-		//		}
-		//
-		//		continue
-		//	}
-		//}
-		//
-		//// if nested slice
-		//if fieldValueRoot.Kind() == reflect.Slice {
-		//
-		//	// evaluate with pointer to new instance (as child because one-to-many relationship)
-		//	err := f.addNewChild(fieldName, fieldValueRoot.Addr().Interface())
-		//	if err != nil {
-		//		return err
-		//	}
-		//
-		//	continue
-		//}
-		//
-		//// add field to map
-		//err := f.addField(fieldName, rv.Field(i).Addr().Interface())
-		//if err != nil {
-		//	return err
-		//}
 
 		err := action()
 		if err != nil {

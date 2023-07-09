@@ -381,7 +381,7 @@ func TestAddField(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name:      "Add Single Field With Collision",
+			name:      "Add Single Field With Field Collision",
 			inputName: "field_name",
 			inputObj:  referenceField(0),
 			fields: &fields{
@@ -395,17 +395,26 @@ func TestAddField(t *testing.T) {
 					"field_name": {isNil: true},
 				},
 			},
-			expected: &fields{
-				orderedFieldNames: []string{
+			expected:    nil, // N/A for this test
+			expectedErr: fmt.Errorf("field with name \"field_name\" already added"),
+		},
+		{
+			name:      "Add Single Field With Scanner Collision",
+			inputName: "field_name",
+			inputObj:  referenceField(0),
+			fields: &fields{
+				orderedFieldNames: []string{},
+				orderedScannerNames: []string{
 					"field_name",
 				},
-				references: map[string]interface{}{
-					"field_name": referenceField(0),
+				scannerReferences: map[string]Scanner{
+					"field_name": nil,
 				},
 				nullFields: map[string]*nullBytes{
 					"field_name": {isNil: true},
 				},
 			},
+			expected:    nil, // N/A for this test
 			expectedErr: fmt.Errorf("field with name \"field_name\" already added"),
 		},
 	}
@@ -427,6 +436,111 @@ func TestAddField(t *testing.T) {
 
 		// assert that the added field points to the exact same object as originally provided
 		assert.Samef(t, test.inputObj, test.fields.references[test.inputName], "")
+	}
+}
+
+type exampleScanner struct{}
+
+func (e *exampleScanner) Scan(_ []byte) error {
+	return nil
+}
+
+func (e *exampleScanner) GetID() string {
+	return ""
+}
+
+func (e *exampleScanner) IsNil() bool {
+	return false
+}
+
+func TestAddScanner(t *testing.T) {
+
+	tests := []struct {
+		name         string
+		inputName    string
+		inputScanner Scanner
+		fields       *fields
+		expected     *fields
+		expectedErr  error
+	}{
+		{
+			name:         "Add Single Scanner Without Collision",
+			inputName:    "field_name",
+			inputScanner: &exampleScanner{},
+			fields: &fields{
+				orderedScannerNames: []string{},
+				scannerReferences:   map[string]Scanner{},
+				nullFields:          map[string]*nullBytes{},
+			},
+			expected: &fields{
+				orderedScannerNames: []string{
+					"field_name",
+				},
+				scannerReferences: map[string]Scanner{
+					"field_name": &exampleScanner{},
+				},
+				nullFields: map[string]*nullBytes{
+					"field_name": {isNil: true},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name:         "Add Single Scanner With Scanner Collision",
+			inputName:    "field_name",
+			inputScanner: &exampleScanner{},
+			fields: &fields{
+				orderedScannerNames: []string{
+					"field_name",
+				},
+				scannerReferences: map[string]Scanner{
+					"field_name": &exampleScanner{},
+				},
+				nullFields: map[string]*nullBytes{
+					"field_name": {isNil: true},
+				},
+			},
+			expected:    nil, // N/A for this test
+			expectedErr: fmt.Errorf("field with name \"field_name\" already added"),
+		},
+		{
+			name:         "Add Single Scanner With Field Collision",
+			inputName:    "field_name",
+			inputScanner: &exampleScanner{},
+			fields: &fields{
+				orderedFieldNames: []string{
+					"field_name",
+				},
+				orderedScannerNames: []string{},
+				references: map[string]interface{}{
+					"field_name": nil,
+				},
+				nullFields: map[string]*nullBytes{
+					"field_name": {isNil: true},
+				},
+			},
+			expected:    nil, // N/A for this test
+			expectedErr: fmt.Errorf("field with name \"field_name\" already added"),
+		},
+	}
+
+	for _, test := range tests {
+
+		err := test.fields.addScanner(test.inputName, test.inputScanner)
+
+		// assert that error is expected
+		assert.Equalf(t, test.expectedErr, err, "")
+
+		// continue to next if nil as following asserts are nullified
+		if err != nil {
+			continue
+		}
+
+		// assert that the resulting struct is the same (value-wise) as the expected fields
+		assert.Equalf(t, test.expected, test.fields, "")
+
+		// assert that the added field points to the exact same object as originally provided
+		assert.Samef(t, test.inputScanner, test.fields.scannerReferences[test.inputName], "")
 	}
 }
 

@@ -27,10 +27,6 @@ func newNullBytes() *nullBytes {
 	}
 }
 
-type fieldNameRecord struct {
-	name string
-}
-
 // fields holds a goscanql parsed struct, maintaining references to the fields
 // of the struct and any sub-structs (children).
 type fields struct {
@@ -417,7 +413,10 @@ func (f *fields) initialise(prefix string) error {
 
 	// TODO comment this
 	if implementsScanner(reflect.TypeOf(f.obj)) {
-		f.addScanner(prefix, f.obj.(Scanner))
+		err := f.addScanner(prefix, f.obj.(Scanner))
+		if err != nil {
+			return err
+		}
 	}
 
 	// if time.Time (this triggers when initialise is called for a slice value)
@@ -472,7 +471,6 @@ func (f *fields) initialise(prefix string) error {
 			action = func() error {
 				return f.addScanner(fieldName, scanner)
 			}
-			break
 
 		// if nested struct
 		case fieldValueRoot.Kind() == reflect.Struct:
@@ -482,21 +480,19 @@ func (f *fields) initialise(prefix string) error {
 				action = func() error {
 					return f.addField(fieldName, rv.Field(i).Addr().Interface())
 				}
-				break
+				break // break out of switch case
 			}
 
 			// evaluate as part of this struct (as one-to-one relationship)
 			action = func() error {
 				return f.addNewChild(fieldName, fieldValueAll[len(fieldValueAll)-1].Addr().Interface())
 			}
-			break
 
 		// if nested slice
 		case fieldValueRoot.Kind() == reflect.Slice:
 			action = func() error {
 				return f.addNewChild(fieldName, fieldValueRoot.Addr().Interface())
 			}
-			break
 
 		default:
 			action = func() error {

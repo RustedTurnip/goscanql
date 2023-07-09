@@ -47,11 +47,13 @@ func TestInitialiseFields(t *testing.T) {
 				"foo",
 				"bar",
 			},
+			orderedScannerNames:  []string{},
 			orderedOneToOneNames: []string{},
 			references: map[string]interface{}{
 				"foo": referenceField(0),
 				"bar": referenceField(""),
 			},
+			scannerReferences: map[string]Scanner{},
 			nullFields: map[string]*nullBytes{
 				"foo": {isNil: true},
 				"bar": {isNil: true},
@@ -70,6 +72,7 @@ func TestInitialiseFields(t *testing.T) {
 			"name",
 			"time",
 		},
+		orderedScannerNames: []string{},
 		orderedOneToOneNames: []string{
 			"child",
 			"child_pointer",
@@ -80,6 +83,7 @@ func TestInitialiseFields(t *testing.T) {
 			"name": &objExample.Name,
 			"time": referenceField(time.Time{}),
 		},
+		scannerReferences: map[string]Scanner{},
 		nullFields: map[string]*nullBytes{
 			"id":   {isNil: true},
 			"name": {isNil: true},

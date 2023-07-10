@@ -117,6 +117,7 @@ func TestInitialiseFields(t *testing.T) {
 	// assert that all the pointers refer to fields of the original object
 	assert.Samef(t, &objExample.ID, subject.references["id"], msg)
 	assert.Samef(t, &objExample.Name, subject.references["name"], msg)
+	assert.Samef(t, &objExample.TimeExample, subject.references["time"], msg)
 	assert.Samef(t, &objExample.Child.Foo, subject.oneToOnes["child"].references["foo"], msg)
 	assert.Samef(t, &objExample.Child.Bar, subject.oneToOnes["child"].references["bar"], msg)
 	assert.Samef(t, &objExample.ChildPointer.Foo, subject.oneToOnes["child_pointer"].references["foo"], msg)

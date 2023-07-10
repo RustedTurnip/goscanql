@@ -11,14 +11,16 @@ func referenceField[T any](field T) *T {
 	return &field
 }
 
-type exampleScanner struct{}
+type exampleScanner struct {
+	ID string
+}
 
 func (e exampleScanner) Scan(_ []byte) error {
 	return nil
 }
 
 func (e exampleScanner) GetID() string {
-	return ""
+	return e.ID
 }
 
 func TestInitialiseFields(t *testing.T) {
@@ -578,6 +580,10 @@ var (
 			"foo",
 			"bar",
 		},
+		orderedScannerNames: []string{
+			"scanner",
+			"another_scanner",
+		},
 		orderedOneToOneNames: []string{
 			"single_child",
 			"null_child",
@@ -586,9 +592,15 @@ var (
 			"foo": referenceField(36),
 			"bar": referenceField("Hello, World!"),
 		},
+		scannerReferences: map[string]Scanner{
+			"scanner":         &exampleScanner{},
+			"another_scanner": &exampleScanner{},
+		},
 		nullFields: map[string]*nullBytes{
-			"foo": {isNil: false},
-			"bar": {isNil: false},
+			"foo":             {isNil: false},
+			"bar":             {isNil: false},
+			"scanner":         {isNil: false},
+			"another_scanner": {isNil: false},
 		},
 		oneToOnes: map[string]*fields{
 			"single_child": {
@@ -649,6 +661,8 @@ func TestGetFieldReferences(t *testing.T) {
 	expected := map[string]interface{}{
 		"foo":                    referenceTestExample.references["foo"],
 		"bar":                    referenceTestExample.references["bar"],
+		"scanner":                referenceTestExample.scannerReferences["scanner"],
+		"another_scanner":        referenceTestExample.scannerReferences["another_scanner"],
 		"single_child_time":      referenceTestExample.oneToOnes["single_child"].references["time"],
 		"many_children_many_foo": referenceTestExample.oneToManys["many_children"].references["many_foo"],
 		"many_children_many_bar": referenceTestExample.oneToManys["many_children"].references["many_bar"],
@@ -672,6 +686,8 @@ func TestGetByteReferences(t *testing.T) {
 	expected := map[string]*nullBytes{
 		"foo":                    referenceTestExample.nullFields["foo"],
 		"bar":                    referenceTestExample.nullFields["bar"],
+		"scanner":                referenceTestExample.nullFields["scanner"],
+		"another_scanner":        referenceTestExample.nullFields["another_scanner"],
 		"single_child_time":      referenceTestExample.oneToOnes["single_child"].nullFields["time"],
 		"null_child_time":        referenceTestExample.oneToOnes["null_child"].nullFields["time"],
 		"many_children_many_foo": referenceTestExample.oneToManys["many_children"].nullFields["many_foo"],
@@ -793,12 +809,12 @@ func TestBuildReferenceName(t *testing.T) {
 }
 
 func TestGetBytePrint(t *testing.T) {
-	expectedBytePrint := []byte(`{foo:36}{bar:"Hello, World!"}{single_child_time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)}{null_child_time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)}`)
+	expectedBytePrint := []byte(`{foo:36}{bar:"Hello, World!"}{scanner:}{another_scanner:}{single_child_time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)}{null_child_time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)}`)
 	assert.Equalf(t, expectedBytePrint, referenceTestExample.getBytePrint(""), "Get Byte Print Test: failed")
 }
 
 func TestGetHash(t *testing.T) {
-	expectedHash := []byte{112, 202, 6, 16, 105, 254, 127, 233, 195, 197, 100, 39, 173, 181, 27, 194, 240, 234, 102, 38}
+	expectedHash := []byte{87, 52, 237, 215, 223, 186, 202, 75, 79, 182, 214, 206, 45, 250, 62, 135, 31, 127, 190, 176}
 	assert.Equalf(t, string(expectedHash), referenceTestExample.getHash(), "Get Hash Test: failed")
 }
 
@@ -895,13 +911,21 @@ func TestIsMatch(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "IsMatch Equal Fields and One-to-One Children",
+			name: "IsMatch Equal Fields and One-to-One Children and Scanner",
 			fields: &fields{
 				orderedFieldNames: []string{
 					"bar",
 				},
+				orderedScannerNames: []string{
+					"scanner",
+				},
 				references: map[string]interface{}{
 					"bar": referenceField(63),
+				},
+				scannerReferences: map[string]Scanner{
+					"scanner": &exampleScanner{
+						ID: "123456789",
+					},
 				},
 				orderedOneToOneNames: []string{
 					"foobar",
@@ -921,8 +945,16 @@ func TestIsMatch(t *testing.T) {
 				orderedFieldNames: []string{
 					"bar",
 				},
+				orderedScannerNames: []string{
+					"scanner",
+				},
 				references: map[string]interface{}{
 					"bar": referenceField(63),
+				},
+				scannerReferences: map[string]Scanner{
+					"scanner": &exampleScanner{
+						ID: "123456789",
+					},
 				},
 				orderedOneToOneNames: []string{
 					"foobar",
@@ -1000,6 +1032,68 @@ func TestIsMatch(t *testing.T) {
 						},
 						references: map[string]interface{}{
 							"foo": &[]byte{1, 2, 4},
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "IsMatch Not Equal Scanners",
+			fields: &fields{
+				orderedFieldNames: []string{
+					"bar",
+				},
+				orderedScannerNames: []string{
+					"scanner",
+				},
+				references: map[string]interface{}{
+					"bar": referenceField(63),
+				},
+				scannerReferences: map[string]Scanner{
+					"scanner": &exampleScanner{
+						ID: "123456789",
+					},
+				},
+				orderedOneToOneNames: []string{
+					"foobar",
+				},
+				oneToOnes: map[string]*fields{
+					"foobar": {
+						orderedFieldNames: []string{
+							"foo",
+						},
+						references: map[string]interface{}{
+							"foo": &[]byte{1, 2, 3},
+						},
+					},
+				},
+			},
+			comparee: &fields{
+				orderedFieldNames: []string{
+					"bar",
+				},
+				orderedScannerNames: []string{
+					"scanner",
+				},
+				references: map[string]interface{}{
+					"bar": referenceField(63),
+				},
+				orderedOneToOneNames: []string{
+					"foobar",
+				},
+				scannerReferences: map[string]Scanner{
+					"scanner": &exampleScanner{
+						ID: "987654321",
+					},
+				},
+				oneToOnes: map[string]*fields{
+					"foobar": {
+						orderedFieldNames: []string{
+							"foo",
+						},
+						references: map[string]interface{}{
+							"foo": &[]byte{1, 2, 3},
 						},
 					},
 				},

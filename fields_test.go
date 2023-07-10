@@ -159,7 +159,7 @@ func TestInitialiseFields(t *testing.T) {
 	assert.Samef(t, &objExample.Name, subject.references["name"], msg)
 	assert.Samef(t, &objExample.TimeExample, subject.references["time"], msg)
 	assert.Samef(t, &objExample.Scanner, subject.scannerReferences["scanner"], msg)
-	assert.Samef(t, &(*objExample.ScannerPointer), subject.scannerReferences["scanner_pointer"], msg)
+	assert.Samef(t, objExample.ScannerPointer, subject.scannerReferences["scanner_pointer"], msg)
 	assert.Samef(t, &objExample.Child.Foo, subject.oneToOnes["child"].references["foo"], msg)
 	assert.Samef(t, &objExample.Child.Bar, subject.oneToOnes["child"].references["bar"], msg)
 	assert.Samef(t, &objExample.ChildPointer.Foo, subject.oneToOnes["child_pointer"].references["foo"], msg)

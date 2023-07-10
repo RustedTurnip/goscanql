@@ -11,6 +11,16 @@ func referenceField[T any](field T) *T {
 	return &field
 }
 
+type exampleScanner struct{}
+
+func (e exampleScanner) Scan(_ []byte) error {
+	return nil
+}
+
+func (e exampleScanner) GetID() string {
+	return ""
+}
+
 func TestInitialiseFields(t *testing.T) {
 
 	type childExample struct {
@@ -22,12 +32,15 @@ func TestInitialiseFields(t *testing.T) {
 		ID                  int    `goscanql:"id"`
 		Name                string `goscanql:"name"`
 		UnnamedField        string
-		TimeExample         time.Time       `goscanql:"time"`
-		Child               childExample    `goscanql:"child"`
-		ChildPointer        *childExample   `goscanql:"child_pointer"`
-		ChildPointerPointer **childExample  `goscanql:"child_pointer_pointer"`
-		Children            []childExample  `goscanql:"children"`
-		ChildrenPointer     *[]childExample `goscanql:"children_pointer"`
+		TimeExample         time.Time        `goscanql:"time"`
+		Scanner             exampleScanner   `goscanql:"scanner"`
+		ScannerPointer      *exampleScanner  `goscanql:"scanner_pointer"`
+		Child               childExample     `goscanql:"child"`
+		ChildPointer        *childExample    `goscanql:"child_pointer"`
+		ChildPointerPointer **childExample   `goscanql:"child_pointer_pointer"`
+		Children            []childExample   `goscanql:"children"`
+		ChildrenPointer     *[]childExample  `goscanql:"children_pointer"`
+		ChildrenScanners    []exampleScanner `goscanql:"children_scanners"`
 	}{}
 
 	subject := &fields{
@@ -74,22 +87,30 @@ func TestInitialiseFields(t *testing.T) {
 			"name",
 			"time",
 		},
-		orderedScannerNames: []string{},
+		orderedScannerNames: []string{
+			"scanner",
+			"scanner_pointer",
+		},
 		orderedOneToOneNames: []string{
 			"child",
 			"child_pointer",
 			"child_pointer_pointer",
 		},
 		references: map[string]interface{}{
-			"id":   &objExample.ID,
-			"name": &objExample.Name,
+			"id":   referenceField(0),
+			"name": referenceField(""),
 			"time": referenceField(time.Time{}),
 		},
-		scannerReferences: map[string]Scanner{},
+		scannerReferences: map[string]Scanner{
+			"scanner":         &objExample.Scanner,
+			"scanner_pointer": referenceField(exampleScanner{}),
+		},
 		nullFields: map[string]*nullBytes{
-			"id":   {isNil: true},
-			"name": {isNil: true},
-			"time": {isNil: true},
+			"id":              {isNil: true},
+			"name":            {isNil: true},
+			"time":            {isNil: true},
+			"scanner":         {isNil: true},
+			"scanner_pointer": {isNil: true},
 		},
 		oneToOnes: map[string]*fields{
 			"child":                 newExpectedChildExampleFields(&childExample{}),
@@ -99,6 +120,23 @@ func TestInitialiseFields(t *testing.T) {
 		oneToManys: map[string]*fields{
 			"children":         newExpectedChildExampleFields(&childExample{}),
 			"children_pointer": newExpectedChildExampleFields(&childExample{}),
+			"children_scanners": {
+				obj:               &exampleScanner{},
+				orderedFieldNames: []string{},
+				orderedScannerNames: []string{
+					"",
+				},
+				orderedOneToOneNames: []string{},
+				references:           map[string]interface{}{},
+				scannerReferences: map[string]Scanner{
+					"": &exampleScanner{},
+				},
+				nullFields: map[string]*nullBytes{
+					"": {isNil: true},
+				},
+				oneToOnes:  map[string]*fields{},
+				oneToManys: map[string]*fields{},
+			},
 		},
 	}
 
@@ -118,6 +156,8 @@ func TestInitialiseFields(t *testing.T) {
 	assert.Samef(t, &objExample.ID, subject.references["id"], msg)
 	assert.Samef(t, &objExample.Name, subject.references["name"], msg)
 	assert.Samef(t, &objExample.TimeExample, subject.references["time"], msg)
+	assert.Samef(t, &objExample.Scanner, subject.scannerReferences["scanner"], msg)
+	assert.Samef(t, &(*objExample.ScannerPointer), subject.scannerReferences["scanner_pointer"], msg)
 	assert.Samef(t, &objExample.Child.Foo, subject.oneToOnes["child"].references["foo"], msg)
 	assert.Samef(t, &objExample.Child.Bar, subject.oneToOnes["child"].references["bar"], msg)
 	assert.Samef(t, &objExample.ChildPointer.Foo, subject.oneToOnes["child_pointer"].references["foo"], msg)
@@ -128,6 +168,7 @@ func TestInitialiseFields(t *testing.T) {
 	assert.Samef(t, &objExample.Children[0].Bar, subject.oneToManys["children"].references["bar"], msg)
 	assert.Samef(t, &(*objExample.ChildrenPointer)[0].Foo, subject.oneToManys["children_pointer"].references["foo"], msg)
 	assert.Samef(t, &(*objExample.ChildrenPointer)[0].Bar, subject.oneToManys["children_pointer"].references["bar"], msg)
+	assert.Samef(t, &objExample.ChildrenScanners[0], subject.oneToManys["children_scanners"].scannerReferences[""], msg)
 }
 
 func TestNewFields(t *testing.T) {
@@ -438,20 +479,6 @@ func TestAddField(t *testing.T) {
 		// assert that the added field points to the exact same object as originally provided
 		assert.Samef(t, test.inputObj, test.fields.references[test.inputName], "")
 	}
-}
-
-type exampleScanner struct{}
-
-func (e *exampleScanner) Scan(_ []byte) error {
-	return nil
-}
-
-func (e *exampleScanner) GetID() string {
-	return ""
-}
-
-func (e *exampleScanner) IsNil() bool {
-	return false
 }
 
 func TestAddScanner(t *testing.T) {

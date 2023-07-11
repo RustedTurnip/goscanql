@@ -1,6 +1,7 @@
 package goscanql
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -12,6 +13,7 @@ const (
 		SELECT
 			user.id AS id,
 			user.name AS name,
+			user.characteristics AS charactersitics,
 			user_alias.alias AS alias,
 			user_role.title AS role_title,
 			user_role.department AS role_department,
@@ -26,13 +28,33 @@ const (
         LEFT JOIN vehicle_medium ON vehicle.medium_id=vehicle_medium.id;`
 )
 
+// TestUserCharacteristics represents a Scanner type that has custom "Scan" behaviour.
+// In this instance, it demonstrates how you might scan a string and parse it into a
+// slice, which goscanql couldn't do on its own.
+type TestUserCharacteristics []string
+
+func (c *TestUserCharacteristics) Scan(b interface{}) error {
+
+	if b == nil {
+		return nil
+	}
+
+	*c = strings.Split(b.(string), ",")
+	return nil
+}
+
+func (c *TestUserCharacteristics) GetID() string {
+	return strings.Join(*c, ",")
+}
+
 // User represents an example user struct that you might want to parse data into
 type TestUser struct {
-	Id       int           `goscanql:"id"`
-	Name     string        `goscanql:"name"`
-	Vehicles []TestVehicle `goscanql:"vehicle"`
-	Aliases  []string      `goscanql:"alias"`
-	Role     *TestRole     `goscanql:"role"`
+	Id              int                     `goscanql:"id"`
+	Name            string                  `goscanql:"name"`
+	Characteristics TestUserCharacteristics `goscanql:"characteristics"`
+	Vehicles        []TestVehicle           `goscanql:"vehicle"`
+	Aliases         []string                `goscanql:"alias"`
+	Role            *TestRole               `goscanql:"role"`
 }
 
 // Role represents the User's position in their organisation, carrying with it any
@@ -64,19 +86,19 @@ func Test_ExampleRowsToStructs(t *testing.T) {
 		panic(err)
 	}
 
-	columns := []string{"id", "name", "role_title", "role_department", "alias", "vehicle_type", "vehicle_colour", "vehicle_noise", "vehicle_medium_name"}
+	columns := []string{"id", "name", "characteristics", "role_title", "role_department", "alias", "vehicle_type", "vehicle_colour", "vehicle_noise", "vehicle_medium_name"}
 	inputRows := sqlmock.NewRows(columns)
 
-	inputRows.AddRow(1, "Stirling Archer", "field agent", "field operations", "", "car", "black", "brum", "land")
-	inputRows.AddRow(2, "Cheryl Tunt", "secretary", "", "Chrystal", "aeroplane", "white", "whoosh", "air")
-	inputRows.AddRow(2, "Cheryl Tunt", "secretary", "", "Charlene", "aeroplane", "white", "whoosh", "air")
-	inputRows.AddRow(3, "Algernop Krieger", "lab geek", "research & development", "", "van", "blue", "brum", "land")
-	inputRows.AddRow(3, "Algernop Krieger", "lab geek", "research & development", "", "submarine", "black", "...", "sea")
-	inputRows.AddRow(3, "Algernop Krieger", "lab geek", "research & development", "", "submarine", "black", "...", "swimming pool")
-	inputRows.AddRow(4, "Barry Dylan", nil, nil, "", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH", "space")
-	inputRows.AddRow(4, "Barry Dylan", nil, nil, "", "motorbike", "black", "vroom", "land")
-	inputRows.AddRow(5, "Pam Poovey", "hr manager", "human resources", nil, "motorbike", "black", "vroom", "land")
-	inputRows.AddRow(5, "Pam Poovey", "hr manager", "human resources", nil, nil, nil, nil, nil)
+	inputRows.AddRow(1, "Stirling Archer", "narcissistic,arrogant,selfish,insensitive,self-absorbed,sex-crazed", "field agent", "field operations", "", "car", "black", "brum", "land")
+	inputRows.AddRow(2, "Cheryl Tunt", "crazy", "secretary", "", "Chrystal", "aeroplane", "white", "whoosh", "air")
+	inputRows.AddRow(2, "Cheryl Tunt", "crazy", "secretary", "", "Charlene", "aeroplane", "white", "whoosh", "air")
+	inputRows.AddRow(3, "Algernop Krieger", nil, "lab geek", "research & development", "", "van", "blue", "brum", "land")
+	inputRows.AddRow(3, "Algernop Krieger", nil, "lab geek", "research & development", "", "submarine", "black", "...", "sea")
+	inputRows.AddRow(3, "Algernop Krieger", nil, "lab geek", "research & development", "", "submarine", "black", "...", "swimming pool")
+	inputRows.AddRow(4, "Barry Dylan", "bipolar", nil, nil, "", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH", "space")
+	inputRows.AddRow(4, "Barry Dylan", "bipolar", nil, nil, nil, "motorbike", "black", "vroom", "land")
+	inputRows.AddRow(5, "Pam Poovey", "inappropriate", "hr manager", "human resources", nil, "motorbike", "black", "vroom", "land")
+	inputRows.AddRow(5, "Pam Poovey", "inappropriate", "hr manager", "human resources", nil, nil, nil, nil, nil)
 
 	mock.ExpectQuery(scanTestQuery).WillReturnRows(inputRows)
 
@@ -99,6 +121,14 @@ var (
 		{
 			Id:   1,
 			Name: "Stirling Archer",
+			Characteristics: TestUserCharacteristics{
+				"narcissistic",
+				"arrogant",
+				"selfish",
+				"insensitive",
+				"self-absorbed",
+				"sex-crazed",
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "car",
@@ -122,6 +152,9 @@ var (
 		{
 			Id:   2,
 			Name: "Cheryl Tunt",
+			Characteristics: TestUserCharacteristics{
+				"crazy",
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "aeroplane",
@@ -144,8 +177,9 @@ var (
 			},
 		},
 		{
-			Id:   3,
-			Name: "Algernop Krieger",
+			Id:              3,
+			Name:            "Algernop Krieger",
+			Characteristics: nil,
 			Vehicles: []TestVehicle{
 				{
 					Type:   "van",
@@ -182,6 +216,9 @@ var (
 		{
 			Id:   4,
 			Name: "Barry Dylan",
+			Characteristics: TestUserCharacteristics{
+				"bipolar",
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "spaceship",
@@ -212,6 +249,9 @@ var (
 		{
 			Id:   5,
 			Name: "Pam Poovey",
+			Characteristics: TestUserCharacteristics{
+				"inappropriate",
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "motorbike",

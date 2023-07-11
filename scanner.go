@@ -3,7 +3,7 @@ package goscanql
 import "reflect"
 
 type Scanner interface {
-	Scan([]byte) error
+	Scan(interface{}) error
 	GetID() string
 }
 

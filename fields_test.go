@@ -15,7 +15,7 @@ type exampleScanner struct {
 	ID string
 }
 
-func (e exampleScanner) Scan(_ []byte) error {
+func (e exampleScanner) Scan(_ interface{}) error {
 	return nil
 }
 

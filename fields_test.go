@@ -19,8 +19,8 @@ func (e exampleScanner) Scan(_ interface{}) error {
 	return nil
 }
 
-func (e exampleScanner) GetID() string {
-	return e.ID
+func (e exampleScanner) GetID() []byte {
+	return []byte(e.ID)
 }
 
 func TestInitialiseFields(t *testing.T) {

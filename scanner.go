@@ -12,7 +12,7 @@ import (
 // array or a multi-dimensional slice.
 type Scanner interface {
 	sql.Scanner
-	GetID() string
+	GetID() []byte
 }
 
 // implementsScanner evaluates the provided type and returns true if it implements

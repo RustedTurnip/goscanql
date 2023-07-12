@@ -43,8 +43,8 @@ func (c *TestUserCharacteristics) Scan(b interface{}) error {
 	return nil
 }
 
-func (c *TestUserCharacteristics) GetID() string {
-	return strings.Join(*c, ",")
+func (c *TestUserCharacteristics) GetID() []byte {
+	return []byte(strings.Join(*c, ","))
 }
 
 // User represents an example user struct that you might want to parse data into

@@ -15,6 +15,11 @@ import (
 // array or a multi-dimensional slice.
 type Scanner interface {
 	sql.Scanner
+
+	// GetID ia used to identify a value's uniqueness compared to other values of
+	// the same type during a scan. This can be returned as nil, but should
+	// otherwise consistently return a value that uniquely represents the types
+	// value.
 	GetID() []byte
 }
 
@@ -24,7 +29,10 @@ func implementsScanner(t reflect.Type) bool {
 	return t.Implements(reflect.TypeOf((*Scanner)(nil)).Elem())
 }
 
-// TODO comment
+// NullString represents a string that can be null. If null, then the attribute
+// Valid will be set to false, otherwise the value stored in String represents the
+// string value. This type implements the goscanql Scanner interface and can be
+// used when scanning potentially null strings in from a database.
 type NullString struct {
 	String string
 	Valid  bool
@@ -54,7 +62,10 @@ func (ns *NullString) GetID() []byte {
 	return []byte(ns.String)
 }
 
-// TODO comment
+// NullInt64 represents a string that can be null. If null, then the attribute
+// Valid will be set to false, otherwise the value stored in Int64 represents the
+// int64 value. This type implements the goscanql Scanner interface and can be
+// used when scanning potentially null int64s in from a database.
 type NullInt64 struct {
 	Int64 int64
 	Valid bool
@@ -84,7 +95,10 @@ func (ni *NullInt64) GetID() []byte {
 	return []byte(strconv.FormatInt(ni.Int64, 10))
 }
 
-// TODO comment
+// NullInt32 represents a string that can be null. If null, then the attribute
+// Valid will be set to false, otherwise the value stored in Int32 represents the
+// int32 value. This type implements the goscanql Scanner interface and can be
+// used when scanning potentially null int32s in from a database.
 type NullInt32 struct {
 	Int32 int32
 	Valid bool
@@ -114,7 +128,10 @@ func (ni *NullInt32) GetID() []byte {
 	return []byte(strconv.FormatInt(int64(ni.Int32), 10))
 }
 
-// TODO comment
+// NullInt16 represents a string that can be null. If null, then the attribute
+// Valid will be set to false, otherwise the value stored in Int16 represents the
+// int16 value. This type implements the goscanql Scanner interface and can be
+// used when scanning potentially null int16s in from a database.
 type NullInt16 struct {
 	Int16 int16
 	Valid bool
@@ -144,7 +161,10 @@ func (ni *NullInt16) GetID() []byte {
 	return []byte(strconv.FormatInt(int64(ni.Int16), 10))
 }
 
-// TODO comment
+// NullByte represents a string that can be null. If null, then the attribute
+// Valid will be set to false, otherwise the value stored in Byte represents the
+// byte value. This type implements the goscanql Scanner interface and can be
+// used when scanning potentially null bytes in from a database.
 type NullByte struct {
 	Byte  byte
 	Valid bool
@@ -174,7 +194,10 @@ func (ni *NullByte) GetID() []byte {
 	return []byte{ni.Byte}
 }
 
-// TODO comment
+// NullFloat64 represents a string that can be null. If null, then the attribute
+// Valid will be set to false, otherwise the value stored in Float64 represents the
+// float64 value. This type implements the goscanql Scanner interface and can be
+// used when scanning potentially null float64s in from a database.
 type NullFloat64 struct {
 	Float64 float64
 	Valid   bool
@@ -204,7 +227,10 @@ func (ni *NullFloat64) GetID() []byte {
 	return []byte(strconv.FormatFloat(ni.Float64, 'f', -1, 64))
 }
 
-// TODO comment
+// NullBool represents a string that can be null. If null, then the attribute
+// Valid will be set to false, otherwise the value stored in Bool represents the
+// bool value. This type implements the goscanql Scanner interface and can be
+// used when scanning potentially null bools in from a database.
 type NullBool struct {
 	Bool  bool
 	Valid bool
@@ -234,7 +260,10 @@ func (ni *NullBool) GetID() []byte {
 	return []byte(strconv.FormatBool(ni.Bool))
 }
 
-// TODO comment
+// NullTime represents a string that can be null. If null, then the attribute
+// Valid will be set to false, otherwise the value stored in Time represents the
+// time value. This type implements the goscanql Scanner interface and can be
+// used when scanning potentially null time in from a database.
 type NullTime struct {
 	Time  time.Time
 	Valid bool

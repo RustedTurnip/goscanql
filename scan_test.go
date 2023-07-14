@@ -3,6 +3,7 @@ package goscanql
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -14,6 +15,7 @@ const (
 			user.id AS id,
 			user.name AS name,
 			user.characteristics AS charactersitics,
+			user.date_of_birth AS date_of_birth,
 			user_alias.alias AS alias,
 			user_role.title AS role_title,
 			user_role.department AS role_department,
@@ -52,6 +54,7 @@ type TestUser struct {
 	Id              int                     `goscanql:"id"`
 	Name            string                  `goscanql:"name"`
 	Characteristics TestUserCharacteristics `goscanql:"characteristics"`
+	DateOfBirth     NullTime                `goscanql:"date_of_birth"`
 	Vehicles        []TestVehicle           `goscanql:"vehicle"`
 	Aliases         []string                `goscanql:"alias"`
 	Role            *TestRole               `goscanql:"role"`
@@ -86,19 +89,19 @@ func Test_ExampleRowsToStructs(t *testing.T) {
 		panic(err)
 	}
 
-	columns := []string{"id", "name", "characteristics", "role_title", "role_department", "alias", "vehicle_type", "vehicle_colour", "vehicle_noise", "vehicle_medium_name"}
+	columns := []string{"id", "name", "characteristics", "date_of_birth", "role_title", "role_department", "alias", "vehicle_type", "vehicle_colour", "vehicle_noise", "vehicle_medium_name"}
 	inputRows := sqlmock.NewRows(columns)
 
-	inputRows.AddRow(1, "Stirling Archer", "narcissistic,arrogant,selfish,insensitive,self-absorbed,sex-crazed", "field agent", "field operations", "", "car", "black", "brum", "land")
-	inputRows.AddRow(2, "Cheryl Tunt", "crazy", "secretary", "", "Chrystal", "aeroplane", "white", "whoosh", "air")
-	inputRows.AddRow(2, "Cheryl Tunt", "crazy", "secretary", "", "Charlene", "aeroplane", "white", "whoosh", "air")
-	inputRows.AddRow(3, "Algernop Krieger", nil, "lab geek", "research & development", "", "van", "blue", "brum", "land")
-	inputRows.AddRow(3, "Algernop Krieger", nil, "lab geek", "research & development", "", "submarine", "black", "...", "sea")
-	inputRows.AddRow(3, "Algernop Krieger", nil, "lab geek", "research & development", "", "submarine", "black", "...", "swimming pool")
-	inputRows.AddRow(4, "Barry Dylan", "bipolar", nil, nil, "", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH", "space")
-	inputRows.AddRow(4, "Barry Dylan", "bipolar", nil, nil, nil, "motorbike", "black", "vroom", "land")
-	inputRows.AddRow(5, "Pam Poovey", "inappropriate", "hr manager", "human resources", nil, "motorbike", "black", "vroom", "land")
-	inputRows.AddRow(5, "Pam Poovey", "inappropriate", "hr manager", "human resources", nil, nil, nil, nil, nil)
+	inputRows.AddRow(1, "Stirling Archer", "narcissistic,arrogant,selfish,insensitive,self-absorbed,sex-crazed", time.Date(1978, 12, 30, 0, 0, 0, 0, time.UTC), "field agent", "field operations", "", "car", "black", "brum", "land")
+	inputRows.AddRow(2, "Cheryl Tunt", "crazy", time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC), "secretary", "", "Chrystal", "aeroplane", "white", "whoosh", "air")
+	inputRows.AddRow(2, "Cheryl Tunt", "crazy", time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC), "secretary", "", "Charlene", "aeroplane", "white", "whoosh", "air")
+	inputRows.AddRow(3, "Algernop Krieger", nil, time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), "lab geek", "research & development", "", "van", "blue", "brum", "land")
+	inputRows.AddRow(3, "Algernop Krieger", nil, time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), "lab geek", "research & development", "", "submarine", "black", "...", "sea")
+	inputRows.AddRow(3, "Algernop Krieger", nil, time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), "lab geek", "research & development", "", "submarine", "black", "...", "swimming pool")
+	inputRows.AddRow(4, "Barry Dylan", "bipolar", nil, nil, nil, "", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH", "space")
+	inputRows.AddRow(4, "Barry Dylan", "bipolar", nil, nil, nil, nil, "motorbike", "black", "vroom", "land")
+	inputRows.AddRow(5, "Pam Poovey", "inappropriate", nil, "hr manager", "human resources", nil, "motorbike", "black", "vroom", "land")
+	inputRows.AddRow(5, "Pam Poovey", "inappropriate", nil, "hr manager", "human resources", nil, nil, nil, nil, nil)
 
 	mock.ExpectQuery(scanTestQuery).WillReturnRows(inputRows)
 
@@ -129,6 +132,10 @@ var (
 				"self-absorbed",
 				"sex-crazed",
 			},
+			DateOfBirth: NullTime{
+				Time:  time.Date(1978, 12, 30, 0, 0, 0, 0, time.UTC),
+				Valid: true,
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "car",
@@ -155,6 +162,10 @@ var (
 			Characteristics: TestUserCharacteristics{
 				"crazy",
 			},
+			DateOfBirth: NullTime{
+				Time:  time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC),
+				Valid: true,
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "aeroplane",
@@ -180,6 +191,10 @@ var (
 			Id:              3,
 			Name:            "Algernop Krieger",
 			Characteristics: nil,
+			DateOfBirth: NullTime{
+				Time:  time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC),
+				Valid: true,
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "van",
@@ -219,6 +234,10 @@ var (
 			Characteristics: TestUserCharacteristics{
 				"bipolar",
 			},
+			DateOfBirth: NullTime{
+				Time:  time.Time{},
+				Valid: false,
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "spaceship",
@@ -251,6 +270,10 @@ var (
 			Name: "Pam Poovey",
 			Characteristics: TestUserCharacteristics{
 				"inappropriate",
+			},
+			DateOfBirth: NullTime{
+				Time:  time.Time{},
+				Valid: false,
 			},
 			Vehicles: []TestVehicle{
 				{

@@ -92,6 +92,7 @@ func Test_ExampleRowsToStructs(t *testing.T) {
 	columns := []string{"id", "name", "characteristics", "date_of_birth", "role_title", "role_department", "alias", "vehicle_type", "vehicle_colour", "vehicle_noise", "vehicle_medium_name"}
 	inputRows := sqlmock.NewRows(columns)
 
+	inputRows.AddRow(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
 	inputRows.AddRow(1, "Stirling Archer", "narcissistic,arrogant,selfish,insensitive,self-absorbed,sex-crazed", time.Date(1978, 12, 30, 0, 0, 0, 0, time.UTC), "field agent", "field operations", "", "car", "black", "brum", "land")
 	inputRows.AddRow(2, "Cheryl Tunt", "crazy", time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC), "secretary", "", "Chrystal", "aeroplane", "white", "whoosh", "air")
 	inputRows.AddRow(2, "Cheryl Tunt", "crazy", time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC), "secretary", "", "Charlene", "aeroplane", "white", "whoosh", "air")

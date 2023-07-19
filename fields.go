@@ -38,6 +38,10 @@ type fields struct {
 	// to facilitate reliable hashing when comparing fields entities.
 	orderedFieldNames []string
 
+	// orderedScannerNames maintains the scanner field names in the order of which they were
+	// added to facilitate reliable hashing when comparing fields entities.
+	orderedScannerNames []string
+
 	// orderedOneToOneNames maintains the names of the one-to-one relationship children so
 	// that they can reliably be hashed for comparison.
 	orderedOneToOneNames []string
@@ -45,6 +49,10 @@ type fields struct {
 	// references holds a reference to each field belonging to a fields entity so they can
 	// be set.
 	references map[string]interface{}
+
+	// scannerReferences holds a reference to each scanner belonging to a fields entity so
+	// they can be set.
+	scannerReferences map[string]Scanner
 
 	// nullFields holds a nullBytes entity for each field and is used to determine whether a
 	// field is nil or not.
@@ -100,17 +108,47 @@ func (f *fields) addNewChild(name string, obj interface{}) error {
 	return nil
 }
 
+func newFieldCollisionError(fieldName string) error {
+	return fmt.Errorf("field with name \"%s\" already added", fieldName)
+}
+
 // addField will add a single field to the current fields (e.g. a string or int).
 func (f *fields) addField(name string, value interface{}) error {
 
 	// assert that field hasn't already been added
 	if _, ok := f.references[name]; ok {
-		return fmt.Errorf("field with name \"%s\" already added", name)
+		return newFieldCollisionError(name)
+	}
+
+	// assert that field hasn't already been added as scanner
+	if _, ok := f.scannerReferences[name]; ok {
+		return newFieldCollisionError(name)
 	}
 
 	// add field to this instance
 	f.orderedFieldNames = append(f.orderedFieldNames, name)
 	f.references[name] = value
+	f.nullFields[name] = newNullBytes()
+
+	return nil
+}
+
+// addScanner will add a single scanner to the current scanners.
+func (f *fields) addScanner(name string, value Scanner) error {
+
+	// assert that scanner hasn't already been added as field
+	if _, ok := f.references[name]; ok {
+		return newFieldCollisionError(name)
+	}
+
+	// assert that scanner hasn't already been added
+	if _, ok := f.scannerReferences[name]; ok {
+		return newFieldCollisionError(name)
+	}
+
+	// add field to this instance
+	f.orderedScannerNames = append(f.orderedScannerNames, name)
+	f.scannerReferences[name] = value
 	f.nullFields[name] = newNullBytes()
 
 	return nil
@@ -130,6 +168,10 @@ func (f *fields) getFieldReferences() map[string]interface{} {
 
 		for name, reference := range fi.references {
 			m[buildReferenceName(prefix, name)] = reference
+		}
+
+		for name, scanner := range fi.scannerReferences {
+			m[buildReferenceName(prefix, name)] = scanner
 		}
 
 		return false
@@ -223,9 +265,14 @@ func (f *fields) getBytePrint(prefix string) []byte {
 	for _, key := range f.orderedFieldNames {
 
 		value := f.references[key]
-
 		strValue := fmt.Sprintf("{%s:%#v}", buildReferenceName(prefix, key), reflect.ValueOf(value).Elem().Interface())
+		print = append(print, []byte(strValue)...)
+	}
 
+	for _, key := range f.orderedScannerNames {
+
+		value := f.scannerReferences[key]
+		strValue := fmt.Sprintf("{%s:%s}", buildReferenceName(prefix, key), value.GetID())
 		print = append(print, []byte(strValue)...)
 	}
 
@@ -337,8 +384,10 @@ func newFields(obj interface{}) (*fields, error) {
 	fields := &fields{
 		obj:                  obj,
 		orderedFieldNames:    make([]string, 0),
+		orderedScannerNames:  make([]string, 0),
 		orderedOneToOneNames: make([]string, 0),
 		references:           make(map[string]interface{}),
+		scannerReferences:    make(map[string]Scanner),
 		nullFields:           make(map[string]*nullBytes),
 		oneToOnes:            make(map[string]*fields),
 		oneToManys:           make(map[string]*fields),
@@ -361,6 +410,14 @@ func (f *fields) initialise(prefix string) error {
 
 	rv := rva[0]
 	t := rv.Type()
+
+	// if type implements the Scanner interface (this triggers when initialise is called for a slice value)
+	if implementsScanner(reflect.TypeOf(f.obj)) {
+		err := f.addScanner(prefix, f.obj.(Scanner))
+		if err != nil {
+			return err
+		}
+	}
 
 	// if time.Time (this triggers when initialise is called for a slice value)
 	if _, ok := rv.Interface().(time.Time); ok {
@@ -404,36 +461,46 @@ func (f *fields) initialise(prefix string) error {
 		fieldValueAll := instantiateAndReturnAll(fieldValue.Addr().Interface())
 		fieldValueRoot := fieldValueAll[0]
 
-		// if nested struct
-		if fieldValueRoot.Kind() == reflect.Struct {
+		var action func() error
+		scanner := asScanner(fieldValueRoot)
 
-			// and if struct is not time
-			if _, ok := fieldValueRoot.Interface().(time.Time); !ok {
+		switch {
 
-				// evaluate as part of this struct (as one-to-one relationship)
-				err := f.addNewChild(fieldName, fieldValueAll[len(fieldValueAll)-1].Addr().Interface())
-				if err != nil {
-					return err
-				}
-
-				continue
+		// if field implements Scanner
+		case scanner != nil:
+			action = func() error {
+				return f.addScanner(fieldName, scanner)
 			}
-		}
+
+		// if nested struct
+		case fieldValueRoot.Kind() == reflect.Struct:
+
+			// if struct is not time
+			if _, ok := fieldValueRoot.Interface().(time.Time); ok {
+				action = func() error {
+					return f.addField(fieldName, rv.Field(i).Addr().Interface())
+				}
+				break // break out of switch case
+			}
+
+			// evaluate as part of this struct (as one-to-one relationship)
+			action = func() error {
+				return f.addNewChild(fieldName, fieldValueAll[len(fieldValueAll)-1].Addr().Interface())
+			}
 
 		// if nested slice
-		if fieldValueRoot.Kind() == reflect.Slice {
-
-			// evaluate with pointer to new instance (as child because one-to-many relationship)
-			err := f.addNewChild(fieldName, fieldValueRoot.Addr().Interface())
-			if err != nil {
-				return err
+		case fieldValueRoot.Kind() == reflect.Slice:
+			action = func() error {
+				return f.addNewChild(fieldName, fieldValueRoot.Addr().Interface())
 			}
 
-			continue
+		default:
+			action = func() error {
+				return f.addField(fieldName, rv.Field(i).Addr().Interface())
+			}
 		}
 
-		// add field to map
-		err := f.addField(fieldName, rv.Field(i).Addr().Interface())
+		err := action()
 		if err != nil {
 			return err
 		}
@@ -492,4 +559,20 @@ func instantiateValue(val reflect.Value) []reflect.Value {
 	}
 
 	return []reflect.Value{val}
+}
+
+// asScanner will return a Scanner established from the provided value. If a non-pointer is returned
+// e.g. ExampleStruct, then the returned Scanner will be of the underlying type *ExampleStruct as a
+// pointer is required for the type to modify its attributes and affect the original.
+func asScanner(value reflect.Value) Scanner {
+
+	if value.Type().Kind() != reflect.Pointer {
+		value = value.Addr()
+	}
+
+	if implementsScanner(value.Type()) {
+		return value.Interface().(Scanner)
+	}
+
+	return nil
 }

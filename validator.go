@@ -43,8 +43,20 @@ func isNotArray(t reflect.Type) error {
 
 	t = getPointerRootType(t)
 
+	// if type (or pointer to type) implements Scanner, then it is exempt
+	if asScanner(reflect.New(t)) != nil {
+		return nil
+	}
+
 	// recursively search slice types until base type found
 	if t.Kind() == reflect.Slice {
+
+		// before assessing nested type to see if it is an array, we must make sure that the nested
+		// type isn't exempt from the validations by implementing Scanner.
+		if implementsScanner(t) {
+			return nil
+		}
+
 		return isNotArray(t.Elem())
 	}
 
@@ -60,6 +72,11 @@ func isNotArray(t reflect.Type) error {
 func isNotMap(t reflect.Type) error {
 
 	t = getPointerRootType(t)
+
+	// if type (or pointer to type) implements Scanner, then it is exempt
+	if asScanner(reflect.New(t)) != nil {
+		return nil
+	}
 
 	// recursively search array/slice types until base type found
 	if t.Kind() == reflect.Array || t.Kind() == reflect.Slice {
@@ -79,6 +96,11 @@ func isNotMultidimensionalSlice(t reflect.Type) error {
 
 	t = getPointerRootType(t)
 
+	// if type (or pointer to type) implements Scanner, then it is exempt
+	if asScanner(reflect.New(t)) != nil {
+		return nil
+	}
+
 	if t.Kind() != reflect.Slice {
 		return nil
 	}
@@ -91,6 +113,11 @@ func isNotMultidimensionalSlice(t reflect.Type) error {
 		return nil
 	}
 
+	// if sliceType (or pointer to type) implements Scanner, then it is exempt
+	if asScanner(reflect.New(sliceType)) != nil {
+		return nil
+	}
+
 	return fmt.Errorf("multi-dimensional slices are not supported (%s), consider using a slice instead", t.String())
 }
 
@@ -99,6 +126,11 @@ func isNotMultidimensionalSlice(t reflect.Type) error {
 func isNotFunc(t reflect.Type) error {
 
 	t = getPointerRootType(t)
+
+	// if type (or pointer to type) implements Scanner, then it is exempt
+	if asScanner(reflect.New(t)) != nil {
+		return nil
+	}
 
 	// recursively search array/slice types until base type found
 	if t.Kind() == reflect.Array || t.Kind() == reflect.Slice {
@@ -117,6 +149,11 @@ func isNotFunc(t reflect.Type) error {
 func isNotChan(t reflect.Type) error {
 
 	t = getPointerRootType(t)
+
+	// if type (or pointer to type) implements Scanner, then it is exempt
+	if asScanner(reflect.New(t)) != nil {
+		return nil
+	}
 
 	// recursively search array/slice types until base type found
 	if t.Kind() == reflect.Array || t.Kind() == reflect.Slice {

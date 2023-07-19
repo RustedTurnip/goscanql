@@ -2,9 +2,10 @@ package goscanql
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type cyclicExample struct {
@@ -66,6 +67,18 @@ func TestIsStruct(t *testing.T) {
 	}
 }
 
+type arrayScanner [4]string
+
+func (a arrayScanner) Scan(_ interface{}) error {
+	return nil
+}
+
+func (m arrayScanner) GetID() []byte {
+	return nil
+}
+
+type arrayType [4]string
+
 func TestIsNotArray(t *testing.T) {
 
 	tests := []struct {
@@ -99,6 +112,16 @@ func TestIsNotArray(t *testing.T) {
 			expected: fmt.Errorf("arrays are not supported ([4]int), consider using a slice instead"),
 		},
 		{
+			name:     "ArrayOfArrayScanners_ProducesError",
+			input:    [6]arrayScanner{},
+			expected: fmt.Errorf("arrays are not supported ([6]goscanql.arrayScanner), consider using a slice instead"),
+		},
+		{
+			name:     "ArrayType_ProducesError",
+			input:    arrayType{},
+			expected: fmt.Errorf("arrays are not supported (goscanql.arrayType), consider using a slice instead"),
+		},
+		{
 			name:     "NonArray_NoError",
 			input:    struct{}{},
 			expected: nil,
@@ -106,6 +129,16 @@ func TestIsNotArray(t *testing.T) {
 		{
 			name:     "Slice_NoError",
 			input:    []struct{}{},
+			expected: nil,
+		},
+		{
+			name:     "ArrayScanner_NoError",
+			input:    arrayScanner{},
+			expected: nil,
+		},
+		{
+			name:     "SliceOfArrayScanners_NoError",
+			input:    []arrayScanner{},
 			expected: nil,
 		},
 	}
@@ -124,6 +157,18 @@ func TestIsNotArray(t *testing.T) {
 		})
 	}
 }
+
+type mapScanner map[int]string
+
+func (m mapScanner) Scan(_ interface{}) error {
+	return nil
+}
+
+func (m mapScanner) GetID() []byte {
+	return nil
+}
+
+type mapType map[int]string
 
 func TestIsNotMap(t *testing.T) {
 
@@ -163,6 +208,16 @@ func TestIsNotMap(t *testing.T) {
 			expected: fmt.Errorf("maps are not supported (map[string]interface {}), consider using a slice instead"),
 		},
 		{
+			name:     "MapType_ProducesError",
+			input:    mapType{},
+			expected: fmt.Errorf("maps are not supported (goscanql.mapType), consider using a slice instead"),
+		},
+		{
+			name:     "SliceOfMapTypes_ProducesError",
+			input:    []mapType{},
+			expected: fmt.Errorf("maps are not supported (goscanql.mapType), consider using a slice instead"),
+		},
+		{
 			name:     "Struct_NoError",
 			input:    struct{}{},
 			expected: nil,
@@ -170,6 +225,16 @@ func TestIsNotMap(t *testing.T) {
 		{
 			name:     "PrimitiveType_NoError",
 			input:    "",
+			expected: nil,
+		},
+		{
+			name:     "MapScanner_NoError",
+			input:    mapScanner{},
+			expected: nil,
+		},
+		{
+			name:     "SliceOfMapScanners_NoError",
+			input:    []mapScanner{},
 			expected: nil,
 		},
 	}
@@ -188,6 +253,18 @@ func TestIsNotMap(t *testing.T) {
 		})
 	}
 }
+
+type multidimensionalSliceScanner [][]string
+
+func (m multidimensionalSliceScanner) Scan(_ interface{}) error {
+	return nil
+}
+
+func (m multidimensionalSliceScanner) GetID() []byte {
+	return nil
+}
+
+type multidimensionalSliceType [][]string
 
 func TestIsNotMultidimensionalSlice(t *testing.T) {
 
@@ -217,6 +294,16 @@ func TestIsNotMultidimensionalSlice(t *testing.T) {
 			expected: fmt.Errorf("multi-dimensional slices are not supported ([][][]int), consider using a slice instead"),
 		},
 		{
+			name:     "MultidimensionalSliceType_ProducesError",
+			input:    multidimensionalSliceType{},
+			expected: fmt.Errorf("multi-dimensional slices are not supported (goscanql.multidimensionalSliceType), consider using a slice instead"),
+		},
+		{
+			name:     "SliceOfMultidimensionalSliceTypes_ProducesError",
+			input:    []multidimensionalSliceType{},
+			expected: fmt.Errorf("multi-dimensional slices are not supported ([]goscanql.multidimensionalSliceType), consider using a slice instead"),
+		},
+		{
 			name:     "Slice_NoError",
 			input:    []int{},
 			expected: nil,
@@ -225,6 +312,20 @@ func TestIsNotMultidimensionalSlice(t *testing.T) {
 			name:     "PointerSlice_NoError",
 			input:    &[]int{},
 			expected: nil,
+		},
+		{
+			name:     "MultidimensionalSliceScanner_NoError",
+			input:    multidimensionalSliceScanner{},
+			expected: nil,
+		},
+		{
+			name:     "SliceOfMultidimensionalSliceScanner_NoError",
+			input:    []multidimensionalSliceScanner{},
+			expected: nil,
+		}, {
+			name:     "MultidimensionalSliceOfMultidimensionalSliceScanner_NoError",
+			input:    [][]multidimensionalSliceScanner{},
+			expected: fmt.Errorf("multi-dimensional slices are not supported ([][]goscanql.multidimensionalSliceScanner), consider using a slice instead"),
 		},
 	}
 
@@ -242,6 +343,18 @@ func TestIsNotMultidimensionalSlice(t *testing.T) {
 		})
 	}
 }
+
+type funcScanner func()
+
+func (f funcScanner) Scan(_ interface{}) error {
+	return nil
+}
+
+func (f funcScanner) GetID() []byte {
+	return nil
+}
+
+type funcType func()
 
 func TestIsNotFunc(t *testing.T) {
 
@@ -281,6 +394,21 @@ func TestIsNotFunc(t *testing.T) {
 			expected: fmt.Errorf("functions are not supported (func())"),
 		},
 		{
+			name:     "SliceArrayFunc_ProducesError",
+			input:    [][4]func(){},
+			expected: fmt.Errorf("functions are not supported (func())"),
+		},
+		{
+			name:     "FuncType_ProducesError",
+			input:    funcType(func() {}),
+			expected: fmt.Errorf("functions are not supported (goscanql.funcType)"),
+		},
+		{
+			name:     "SliceOfFuncTypes_ProducesError",
+			input:    []funcType{},
+			expected: fmt.Errorf("functions are not supported (goscanql.funcType)"),
+		},
+		{
 			name:     "Struct_NoError",
 			input:    struct{}{},
 			expected: nil,
@@ -288,6 +416,16 @@ func TestIsNotFunc(t *testing.T) {
 		{
 			name:     "PrimitiveType_NoError",
 			input:    "",
+			expected: nil,
+		},
+		{
+			name:     "FuncScanner_NoError",
+			input:    funcScanner(func() {}),
+			expected: nil,
+		},
+		{
+			name:     "SliceOfFuncScanners_NoError",
+			input:    []funcScanner{},
 			expected: nil,
 		},
 	}
@@ -306,6 +444,18 @@ func TestIsNotFunc(t *testing.T) {
 		})
 	}
 }
+
+type chanScanner chan int
+
+func (c chanScanner) Scan(_ interface{}) error {
+	return nil
+}
+
+func (c chanScanner) GetID() []byte {
+	return nil
+}
+
+type chanType chan int
 
 func TestIsNotChan(t *testing.T) {
 
@@ -345,6 +495,16 @@ func TestIsNotChan(t *testing.T) {
 			expected: fmt.Errorf("channels are not supported (chan int)"),
 		},
 		{
+			name:     "ChanType_ProducesError",
+			input:    chanType(make(chan int)),
+			expected: fmt.Errorf("channels are not supported (goscanql.chanType)"),
+		},
+		{
+			name:     "SliceOfChanTypes_ProducesError",
+			input:    []chanType{},
+			expected: fmt.Errorf("channels are not supported (goscanql.chanType)"),
+		},
+		{
 			name:     "Struct_NoError",
 			input:    struct{}{},
 			expected: nil,
@@ -352,6 +512,16 @@ func TestIsNotChan(t *testing.T) {
 		{
 			name:     "PrimitiveType_NoError",
 			input:    "",
+			expected: nil,
+		},
+		{
+			name:     "ChanScanner_NoError",
+			input:    chanScanner(make(chan int)),
+			expected: nil,
+		},
+		{
+			name:     "SliceOfChanScanners_NoError",
+			input:    []chanScanner{},
 			expected: nil,
 		},
 	}
@@ -443,6 +613,34 @@ func TestValidateType(t *testing.T) {
 				EC cyclicExample `goscanql:"ec"`
 			}{},
 			expected: fmt.Errorf("goscanql does not support cyclic structs: struct { EC goscanql.cyclicExample \"goscanql:\\\"ec\\\"\" }"),
+		},
+		{
+			name: "StructWithMultiDimensionalSliceScannerInput_NoError",
+			input: struct {
+				MS multidimensionalSliceScanner `goscanql:"ms"`
+			}{},
+			expected: nil,
+		},
+		{
+			name: "StructWithMultiDimensionalSliceInputTypedField_ProducesError",
+			input: struct {
+				MS multidimensionalSliceType `goscanql:"ms"`
+			}{},
+			expected: fmt.Errorf("multi-dimensional slices are not supported (goscanql.multidimensionalSliceType), consider using a slice instead"),
+		},
+		{
+			name: "SliceOfStructWithMultiDimensionalSliceScannerInput_NoError",
+			input: struct {
+				MS []multidimensionalSliceScanner `goscanql:"ms"`
+			}{},
+			expected: nil,
+		},
+		{
+			name: "MultiDimensionalStructWithMultiDimensionalSliceScannerInput_ProducesError",
+			input: struct {
+				MS [][]multidimensionalSliceScanner `goscanql:"ms"`
+			}{},
+			expected: fmt.Errorf("multi-dimensional slices are not supported ([][]goscanql.multidimensionalSliceScanner), consider using a slice instead"),
 		},
 	}
 

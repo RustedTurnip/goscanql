@@ -1,7 +1,9 @@
 package goscanql
 
 import (
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -12,6 +14,8 @@ const (
 		SELECT
 			user.id AS id,
 			user.name AS name,
+			user.characteristics AS charactersitics,
+			user.date_of_birth AS date_of_birth,
 			user_alias.alias AS alias,
 			user_role.title AS role_title,
 			user_role.department AS role_department,
@@ -26,13 +30,34 @@ const (
         LEFT JOIN vehicle_medium ON vehicle.medium_id=vehicle_medium.id;`
 )
 
+// TestUserCharacteristics represents a Scanner type that has custom "Scan" behaviour.
+// In this instance, it demonstrates how you might scan a string and parse it into a
+// slice, which goscanql couldn't do on its own.
+type TestUserCharacteristics []string
+
+func (c *TestUserCharacteristics) Scan(b interface{}) error {
+
+	if b == nil {
+		return nil
+	}
+
+	*c = strings.Split(b.(string), ",")
+	return nil
+}
+
+func (c *TestUserCharacteristics) GetID() []byte {
+	return []byte(strings.Join(*c, ","))
+}
+
 // User represents an example user struct that you might want to parse data into
 type TestUser struct {
-	Id       int           `goscanql:"id"`
-	Name     string        `goscanql:"name"`
-	Vehicles []TestVehicle `goscanql:"vehicle"`
-	Aliases  []string      `goscanql:"alias"`
-	Role     *TestRole     `goscanql:"role"`
+	Id              int                     `goscanql:"id"`
+	Name            string                  `goscanql:"name"`
+	Characteristics TestUserCharacteristics `goscanql:"characteristics"`
+	DateOfBirth     NullTime                `goscanql:"date_of_birth"`
+	Vehicles        []TestVehicle           `goscanql:"vehicle"`
+	Aliases         []string                `goscanql:"alias"`
+	Role            *TestRole               `goscanql:"role"`
 }
 
 // Role represents the User's position in their organisation, carrying with it any
@@ -64,19 +89,20 @@ func Test_ExampleRowsToStructs(t *testing.T) {
 		panic(err)
 	}
 
-	columns := []string{"id", "name", "role_title", "role_department", "alias", "vehicle_type", "vehicle_colour", "vehicle_noise", "vehicle_medium_name"}
+	columns := []string{"id", "name", "characteristics", "date_of_birth", "role_title", "role_department", "alias", "vehicle_type", "vehicle_colour", "vehicle_noise", "vehicle_medium_name"}
 	inputRows := sqlmock.NewRows(columns)
 
-	inputRows.AddRow(1, "Stirling Archer", "field agent", "field operations", "", "car", "black", "brum", "land")
-	inputRows.AddRow(2, "Cheryl Tunt", "secretary", "", "Chrystal", "aeroplane", "white", "whoosh", "air")
-	inputRows.AddRow(2, "Cheryl Tunt", "secretary", "", "Charlene", "aeroplane", "white", "whoosh", "air")
-	inputRows.AddRow(3, "Algernop Krieger", "lab geek", "research & development", "", "van", "blue", "brum", "land")
-	inputRows.AddRow(3, "Algernop Krieger", "lab geek", "research & development", "", "submarine", "black", "...", "sea")
-	inputRows.AddRow(3, "Algernop Krieger", "lab geek", "research & development", "", "submarine", "black", "...", "swimming pool")
-	inputRows.AddRow(4, "Barry Dylan", nil, nil, "", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH", "space")
-	inputRows.AddRow(4, "Barry Dylan", nil, nil, "", "motorbike", "black", "vroom", "land")
-	inputRows.AddRow(5, "Pam Poovey", "hr manager", "human resources", nil, "motorbike", "black", "vroom", "land")
-	inputRows.AddRow(5, "Pam Poovey", "hr manager", "human resources", nil, nil, nil, nil, nil)
+	inputRows.AddRow(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	inputRows.AddRow(1, "Stirling Archer", "narcissistic,arrogant,selfish,insensitive,self-absorbed,sex-crazed", time.Date(1978, 12, 30, 0, 0, 0, 0, time.UTC), "field agent", "field operations", "", "car", "black", "brum", "land")
+	inputRows.AddRow(2, "Cheryl Tunt", "crazy", time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC), "secretary", "", "Chrystal", "aeroplane", "white", "whoosh", "air")
+	inputRows.AddRow(2, "Cheryl Tunt", "crazy", time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC), "secretary", "", "Charlene", "aeroplane", "white", "whoosh", "air")
+	inputRows.AddRow(3, "Algernop Krieger", nil, time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), "lab geek", "research & development", "", "van", "blue", "brum", "land")
+	inputRows.AddRow(3, "Algernop Krieger", nil, time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), "lab geek", "research & development", "", "submarine", "black", "...", "sea")
+	inputRows.AddRow(3, "Algernop Krieger", nil, time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), "lab geek", "research & development", "", "submarine", "black", "...", "swimming pool")
+	inputRows.AddRow(4, "Barry Dylan", "bipolar", nil, nil, nil, "", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH", "space")
+	inputRows.AddRow(4, "Barry Dylan", "bipolar", nil, nil, nil, nil, "motorbike", "black", "vroom", "land")
+	inputRows.AddRow(5, "Pam Poovey", "inappropriate", nil, "hr manager", "human resources", nil, "motorbike", "black", "vroom", "land")
+	inputRows.AddRow(5, "Pam Poovey", "inappropriate", nil, "hr manager", "human resources", nil, nil, nil, nil, nil)
 
 	mock.ExpectQuery(scanTestQuery).WillReturnRows(inputRows)
 
@@ -99,6 +125,18 @@ var (
 		{
 			Id:   1,
 			Name: "Stirling Archer",
+			Characteristics: TestUserCharacteristics{
+				"narcissistic",
+				"arrogant",
+				"selfish",
+				"insensitive",
+				"self-absorbed",
+				"sex-crazed",
+			},
+			DateOfBirth: NullTime{
+				Time:  time.Date(1978, 12, 30, 0, 0, 0, 0, time.UTC),
+				Valid: true,
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "car",
@@ -122,6 +160,13 @@ var (
 		{
 			Id:   2,
 			Name: "Cheryl Tunt",
+			Characteristics: TestUserCharacteristics{
+				"crazy",
+			},
+			DateOfBirth: NullTime{
+				Time:  time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC),
+				Valid: true,
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "aeroplane",
@@ -144,8 +189,13 @@ var (
 			},
 		},
 		{
-			Id:   3,
-			Name: "Algernop Krieger",
+			Id:              3,
+			Name:            "Algernop Krieger",
+			Characteristics: nil,
+			DateOfBirth: NullTime{
+				Time:  time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC),
+				Valid: true,
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "van",
@@ -182,6 +232,13 @@ var (
 		{
 			Id:   4,
 			Name: "Barry Dylan",
+			Characteristics: TestUserCharacteristics{
+				"bipolar",
+			},
+			DateOfBirth: NullTime{
+				Time:  time.Time{},
+				Valid: false,
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "spaceship",
@@ -212,6 +269,13 @@ var (
 		{
 			Id:   5,
 			Name: "Pam Poovey",
+			Characteristics: TestUserCharacteristics{
+				"inappropriate",
+			},
+			DateOfBirth: NullTime{
+				Time:  time.Time{},
+				Valid: false,
+			},
 			Vehicles: []TestVehicle{
 				{
 					Type:   "motorbike",

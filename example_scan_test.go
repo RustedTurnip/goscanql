@@ -14,6 +14,7 @@ const (
 			user.name AS name,
 			user.date_of_birth AS date_of_birth,
 			user.nemesis AS nemesis,
+			user.catchphrase AS catchphrase,
 			vehicle.medium AS vehicle_medium,
 			vehicle.type AS vehicle_type,
 			vehicle.colour AS vehicle_colour,
@@ -23,11 +24,12 @@ const (
 
 // User represents an example user struct that you might want to parse data into
 type User struct {
-	Id          int        `goscanql:"id"`
-	Name        string     `goscanql:"name"`
-	DateOfBirth time.Time  `goscanql:"date_of_birth"`
-	Nemesis     NullString `goscanql:"nemesis"`
-	Vehicles    []Vehicle  `goscanql:"vehicle"`
+	Id          int         `goscanql:"id"`
+	Name        string      `goscanql:"name"`
+	DateOfBirth time.Time   `goscanql:"date_of_birth"`
+	Nemesis     NullString  `goscanql:"nemesis"`
+	Catchphrase interface{} `goscanql:"catchphrase"`
+	Vehicles    []Vehicle   `goscanql:"vehicle"`
 }
 
 // Vehicle represents an example vehicle struct that you might want to parse data into
@@ -46,15 +48,15 @@ func ExampleRowsToStructs() {
 		panic(err)
 	}
 
-	columns := []string{"id", "name", "date_of_birth", "nemesis", "vehicle_medium", "vehicle_type", "vehicle_colour", "vehicle_noise"}
+	columns := []string{"id", "name", "date_of_birth", "nemesis", "catchphrase", "vehicle_medium", "vehicle_type", "vehicle_colour", "vehicle_noise"}
 	inputRows := sqlmock.NewRows(columns)
 
-	inputRows.AddRow(1, "Stirling Archer", time.Date(1978, 12, 30, 0, 0, 0, 0, time.UTC), "Barry Dylan", "land", "car", "black", "brum")
-	inputRows.AddRow(2, "Cheryl Tunt", time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC), "Cecil Tunt", "air", "aeroplane", "white", "whoosh")
-	inputRows.AddRow(3, "Algernop Krieger", time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), nil, "land", "van", "blue", "brum")
-	inputRows.AddRow(3, "Algernop Krieger", time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), nil, "sea", "submarine", "black", "...")
-	inputRows.AddRow(4, "Barry Dylan", time.Date(1984, 6, 19, 0, 0, 0, 0, time.UTC), "Stirling Archer", "space", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH")
-	inputRows.AddRow(4, "Barry Dylan", time.Date(1984, 6, 19, 0, 0, 0, 0, time.UTC), "Stirling Archer", "land", "motorbike", "black", "vroom")
+	inputRows.AddRow(1, "Stirling Archer", time.Date(1978, 12, 30, 0, 0, 0, 0, time.UTC), "Barry Dylan", "Danger Zone.", "land", "car", "black", "brum")
+	inputRows.AddRow(2, "Cheryl Tunt", time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC), "Cecil Tunt", nil, "air", "aeroplane", "white", "whoosh")
+	inputRows.AddRow(3, "Algernop Krieger", time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), nil, "Yep Yep Yep!", "land", "van", "blue", "brum")
+	inputRows.AddRow(3, "Algernop Krieger", time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), nil, "Yep Yep Yep!", "sea", "submarine", "black", "...")
+	inputRows.AddRow(4, "Barry Dylan", time.Date(1984, 6, 19, 0, 0, 0, 0, time.UTC), "Stirling Archer", nil, "space", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH")
+	inputRows.AddRow(4, "Barry Dylan", time.Date(1984, 6, 19, 0, 0, 0, 0, time.UTC), "Stirling Archer", nil, "land", "motorbike", "black", "vroom")
 
 	mock.ExpectQuery(exampleQuery).WillReturnRows(inputRows)
 
@@ -69,6 +71,6 @@ func ExampleRowsToStructs() {
 		panic(err)
 	}
 
-	// Output: goscanql.User{Id:3, Name:"Algernop Krieger", DateOfBirth:time.Date(1977, time.September, 24, 0, 0, 0, 0, time.UTC), Nemesis:goscanql.NullString{String:"", Valid:false}, Vehicles:[]goscanql.Vehicle{goscanql.Vehicle{Medium:"land", Type:"van", Colour:"blue", Noise:"brum"}, goscanql.Vehicle{Medium:"sea", Type:"submarine", Colour:"black", Noise:"..."}}}
+	// Output: goscanql.User{Id:3, Name:"Algernop Krieger", DateOfBirth:time.Date(1977, time.September, 24, 0, 0, 0, 0, time.UTC), Nemesis:goscanql.NullString{String:"", Valid:false}, Catchphrase:"Yep Yep Yep!", Vehicles:[]goscanql.Vehicle{goscanql.Vehicle{Medium:"land", Type:"van", Colour:"blue", Noise:"brum"}, goscanql.Vehicle{Medium:"sea", Type:"submarine", Colour:"black", Noise:"..."}}}
 	fmt.Printf("%#v", result[2])
 }

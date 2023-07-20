@@ -541,6 +541,70 @@ func TestIsNotChan(t *testing.T) {
 	}
 }
 
+func TestIsNotCustomInterface(t *testing.T) {
+
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected error
+	}{
+		{
+			name:     "CustomInterface_ProducesError",
+			input:    (*Scanner)(nil),
+			expected: fmt.Errorf("interface types other than interface{} are not supported (goscanql.Scanner)"),
+		},
+		{
+			name:     "SliceOfCustomInterface_ProducesError",
+			input:    []Scanner{},
+			expected: fmt.Errorf("interface types other than interface{} are not supported (goscanql.Scanner)"),
+		},
+		{
+			name:     "MultidimensionalSliceOfCustomInterface_ProducesError",
+			input:    [][]Scanner{},
+			expected: fmt.Errorf("interface types other than interface{} are not supported (goscanql.Scanner)"),
+		},
+		{
+			name:     "ArrayOfCustomInterface_ProducesError",
+			input:    [4]Scanner{},
+			expected: fmt.Errorf("interface types other than interface{} are not supported (goscanql.Scanner)"),
+		},
+		{
+			name:     "ArraySliceOfCustomInterface_ProducesError",
+			input:    [4][]Scanner{},
+			expected: fmt.Errorf("interface types other than interface{} are not supported (goscanql.Scanner)"),
+		},
+		{
+			name:     "NonInterfaceType_NoError",
+			input:    1,
+			expected: nil,
+		},
+		{
+			name:     "Interface_NoError",
+			input:    (*interface{})(nil),
+			expected: nil,
+		},
+		{
+			name:     "StructThatImplementsCustomInterface_NoError",
+			input:    NullTime{},
+			expected: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			// Arrange
+			rt := reflect.TypeOf(test.input)
+
+			// Act
+			err := isNotCustomInterface(rt)
+
+			// Assert
+			assert.Equal(t, test.expected, err)
+		})
+	}
+}
+
 func TestValidateType(t *testing.T) {
 
 	tests := []struct {
@@ -641,6 +705,20 @@ func TestValidateType(t *testing.T) {
 				MS [][]multidimensionalSliceScanner `goscanql:"ms"`
 			}{},
 			expected: fmt.Errorf("multi-dimensional slices are not supported ([][]goscanql.multidimensionalSliceScanner), consider using a slice instead"),
+		},
+		{
+			name: "StructWithAnyInterfaceAsField_NoError",
+			input: struct {
+				I interface{} `goscanql:"i"`
+			}{},
+			expected: nil,
+		},
+		{
+			name: "StructWithNonAnyInterfaceAsField_ProducesError",
+			input: struct {
+				S Scanner `goscanql:"s"`
+			}{},
+			expected: fmt.Errorf("interface types other than interface{} are not supported (goscanql.Scanner)"),
 		},
 	}
 

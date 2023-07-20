@@ -22,7 +22,19 @@ var (
 		isNotMultidimensionalSlice,
 		isNotFunc,
 		isNotChan,
+		isNotCustomInterface,
 	}
+)
+
+var (
+	// genericInterfaceType is the type of interface {} and is used for interface type
+	// comparisons.
+	//
+	// Note: a pointer to interface {} (*interface {}) is used because: "As interface types
+	// are only used for static typing, a common idiom to find the reflection Type for an
+	// interface type Foo is to use a *Foo value."
+	// Ref: https://stackoverflow.com/a/34698753
+	genericInterfaceType = reflect.TypeOf((*interface{})(nil)).Elem()
 )
 
 // isStruct takes a reflect.Type (t) and returns an error if it is not a struct (or nil
@@ -165,6 +177,29 @@ func isNotChan(t reflect.Type) error {
 	}
 
 	return fmt.Errorf("channels are not supported (%s)", t.String())
+}
+
+// isNotCustomInterface takes a type and returns an error when the type is an interface other than
+// interface {}.
+func isNotCustomInterface(t reflect.Type) error {
+
+	t = getPointerRootType(t)
+
+	// recursively search array/slice types until base type found
+	if t.Kind() == reflect.Array || t.Kind() == reflect.Slice {
+		return isNotCustomInterface(t.Elem())
+	}
+
+	if t.Kind() != reflect.Interface {
+		return nil
+	}
+
+	// goscanql supports general interfaces, just not custom ones
+	if t == genericInterfaceType {
+		return nil
+	}
+
+	return fmt.Errorf("interface types other than interface{} are not supported (%s)", t.String())
 }
 
 // validateType analyses the provided input type and ensures that it will is valid based on

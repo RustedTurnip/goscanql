@@ -88,7 +88,7 @@ func main() {
 		panic(err)
 	}
 
-	account, err := goscanql.RowToStruct[*Account](rowsSingle)
+	account, err := goscanql.RowsToStruct[*Account](rowsSingle)
 	if err != nil {
 		panic(err)
 	}

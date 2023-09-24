@@ -68,10 +68,10 @@ func RowsToStructs[T any](rows *sql.Rows) ([]T, error) {
 	return scanRows[T](rows)
 }
 
-// RowToStruct will take the data in rows (*sql.Rows) as input (similarly to RowsToStructs)
+// RowsToStruct will take the data in rows (*sql.Rows) as input (similarly to RowsToStructs)
 // and return a single T (the provided type) as the result and error if more or less than 1
 // row is present.
-func RowToStruct[T any](rows *sql.Rows) (T, error) {
+func RowsToStruct[T any](rows *sql.Rows) (T, error) {
 
 	var zero T // effectively nil (as type is unknown, we can't just return nil)
 

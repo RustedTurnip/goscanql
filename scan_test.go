@@ -15,7 +15,7 @@ const (
 			user.id AS id,
 			user.name AS name,
 			user.office_access_pin AS office_access_pin,
-			user.characteristics AS charactersitics,
+			user.characteristics AS characteristics,
 			user.date_of_birth AS date_of_birth,
 			user_alias.alias AS alias,
 			user_role.title AS role_title,

@@ -2,11 +2,18 @@ package goscanql
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
 const (
 	scanqlTag = "goscanql"
+)
+
+var (
+	// ErrNoStruct is returned by RowsToStruct when the underlying scan is unable to generate a
+	// single struct from the provided sql.Rows.
+	ErrNoStruct = errors.New("goscanql: no structs in result set")
 )
 
 func mapFieldsToColumns[T any](cols []string, fields map[string]T) []interface{} {
@@ -69,8 +76,11 @@ func RowsToStructs[T any](rows *sql.Rows) ([]T, error) {
 }
 
 // RowsToStruct will take the data in rows (*sql.Rows) as input (similarly to RowsToStructs)
-// and return a single T (the provided type) as the result and error if more or less than 1
-// row is present.
+// and return a single T (the provided type) as the result.
+//
+// ErrNoStruct will be returned if zero structs were producible from the provided rows.
+//
+// If more than one struct is produced, an error will be returned.
 func RowsToStruct[T any](rows *sql.Rows) (T, error) {
 
 	var zero T // effectively nil (as type is unknown, we can't just return nil)
@@ -80,8 +90,12 @@ func RowsToStruct[T any](rows *sql.Rows) (T, error) {
 		return zero, err
 	}
 
+	if len(result) == 0 {
+		return zero, ErrNoStruct
+	}
+
 	if len(result) != 1 {
-		return zero, fmt.Errorf("rows had a non-zero length: %d", len(result))
+		return zero, fmt.Errorf("goscanql: more than 1 struct produced: %d", len(result))
 	}
 
 	return result[0], nil

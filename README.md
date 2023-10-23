@@ -152,7 +152,7 @@ instead as a one-to-many relationship of single bytes, for example:
 
 ```go
 type User struct {
-	ID  int `goscanql:"id"`
+	ID  int    `goscanql:"id"`
 	Pin []byte `goscanql:"pin"`
 }
 ```
@@ -167,7 +167,7 @@ of the field `Pin` in the user example above to use `ByteSlice` like so:
 
 ```go
 type User struct {
-	ID  int `goscanql:"id"`
+	ID  int       `goscanql:"id"`
 	Pin ByteSlice `goscanql:"pin"`
 }
 ```

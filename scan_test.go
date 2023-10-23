@@ -14,6 +14,7 @@ const (
 		SELECT
 			user.id AS id,
 			user.name AS name,
+			user.office_access_pin AS office_access_pin,
 			user.characteristics AS charactersitics,
 			user.date_of_birth AS date_of_birth,
 			user_alias.alias AS alias,
@@ -53,6 +54,7 @@ func (c *TestUserCharacteristics) GetID() []byte {
 type TestUser struct {
 	Id              int                     `goscanql:"id"`
 	Name            string                  `goscanql:"name"`
+	OfficeAccessPin ByteSlice               `goscanql:"office_access_pin"`
 	Characteristics TestUserCharacteristics `goscanql:"characteristics"`
 	DateOfBirth     NullTime                `goscanql:"date_of_birth"`
 	Vehicles        []TestVehicle           `goscanql:"vehicle"`
@@ -89,20 +91,20 @@ func Test_ExampleRowsToStructs(t *testing.T) {
 		panic(err)
 	}
 
-	columns := []string{"id", "name", "characteristics", "date_of_birth", "role_title", "role_department", "alias", "vehicle_type", "vehicle_colour", "vehicle_noise", "vehicle_medium_name"}
+	columns := []string{"id", "name", "office_access_pin", "characteristics", "date_of_birth", "role_title", "role_department", "alias", "vehicle_type", "vehicle_colour", "vehicle_noise", "vehicle_medium_name"}
 	inputRows := sqlmock.NewRows(columns)
 
-	inputRows.AddRow(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
-	inputRows.AddRow(1, "Stirling Archer", "narcissistic,arrogant,selfish,insensitive,self-absorbed,sex-crazed", time.Date(1978, 12, 30, 0, 0, 0, 0, time.UTC), "field agent", "field operations", "", "car", "black", "brum", "land")
-	inputRows.AddRow(2, "Cheryl Tunt", "crazy", time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC), "secretary", "", "Chrystal", "aeroplane", "white", "whoosh", "air")
-	inputRows.AddRow(2, "Cheryl Tunt", "crazy", time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC), "secretary", "", "Charlene", "aeroplane", "white", "whoosh", "air")
-	inputRows.AddRow(3, "Algernop Krieger", nil, time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), "lab geek", "research & development", "", "van", "blue", "brum", "land")
-	inputRows.AddRow(3, "Algernop Krieger", nil, time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), "lab geek", "research & development", "", "submarine", "black", "...", "sea")
-	inputRows.AddRow(3, "Algernop Krieger", nil, time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), "lab geek", "research & development", "", "submarine", "black", "...", "swimming pool")
-	inputRows.AddRow(4, "Barry Dylan", "bipolar", nil, nil, nil, "", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH", "space")
-	inputRows.AddRow(4, "Barry Dylan", "bipolar", nil, nil, nil, nil, "motorbike", "black", "vroom", "land")
-	inputRows.AddRow(5, "Pam Poovey", "inappropriate", nil, "hr manager", "human resources", nil, "motorbike", "black", "vroom", "land")
-	inputRows.AddRow(5, "Pam Poovey", "inappropriate", nil, "hr manager", "human resources", nil, nil, nil, nil, nil)
+	inputRows.AddRow(nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+	inputRows.AddRow(1, "Stirling Archer", []byte("1234"), "narcissistic,arrogant,selfish,insensitive,self-absorbed,sex-crazed", time.Date(1978, 12, 30, 0, 0, 0, 0, time.UTC), "field agent", "field operations", "", "car", "black", "brum", "land")
+	inputRows.AddRow(2, "Cheryl Tunt", []byte("9876"), "crazy", time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC), "secretary", "", "Chrystal", "aeroplane", "white", "whoosh", "air")
+	inputRows.AddRow(2, "Cheryl Tunt", []byte("9876"), "crazy", time.Date(1987, 4, 24, 0, 0, 0, 0, time.UTC), "secretary", "", "Charlene", "aeroplane", "white", "whoosh", "air")
+	inputRows.AddRow(3, "Algernop Krieger", []byte("3141"), nil, time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), "lab geek", "research & development", "", "van", "blue", "brum", "land")
+	inputRows.AddRow(3, "Algernop Krieger", []byte("3141"), nil, time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), "lab geek", "research & development", "", "submarine", "black", "...", "sea")
+	inputRows.AddRow(3, "Algernop Krieger", []byte("3141"), nil, time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC), "lab geek", "research & development", "", "submarine", "black", "...", "swimming pool")
+	inputRows.AddRow(4, "Barry Dylan", nil, "bipolar", nil, nil, nil, "", "spaceship", "grey", "RRRRRRRRRRRRRRRRRRGGHHHH", "space")
+	inputRows.AddRow(4, "Barry Dylan", nil, "bipolar", nil, nil, nil, nil, "motorbike", "black", "vroom", "land")
+	inputRows.AddRow(5, "Pam Poovey", []byte{}, "inappropriate", nil, "hr manager", "human resources", nil, "motorbike", "black", "vroom", "land")
+	inputRows.AddRow(5, "Pam Poovey", []byte{}, "inappropriate", nil, "hr manager", "human resources", nil, nil, nil, nil, nil)
 
 	mock.ExpectQuery(scanTestQuery).WillReturnRows(inputRows)
 
@@ -123,8 +125,9 @@ func Test_ExampleRowsToStructs(t *testing.T) {
 var (
 	expectedUsers = []TestUser{
 		{
-			Id:   1,
-			Name: "Stirling Archer",
+			Id:              1,
+			Name:            "Stirling Archer",
+			OfficeAccessPin: ByteSlice{'1', '2', '3', '4'},
 			Characteristics: TestUserCharacteristics{
 				"narcissistic",
 				"arrogant",
@@ -160,6 +163,8 @@ var (
 		{
 			Id:   2,
 			Name: "Cheryl Tunt",
+
+			OfficeAccessPin: ByteSlice{'9', '8', '7', '6'},
 			Characteristics: TestUserCharacteristics{
 				"crazy",
 			},
@@ -191,6 +196,7 @@ var (
 		{
 			Id:              3,
 			Name:            "Algernop Krieger",
+			OfficeAccessPin: ByteSlice{'3', '1', '4', '1'},
 			Characteristics: nil,
 			DateOfBirth: NullTime{
 				Time:  time.Date(1977, 9, 24, 0, 0, 0, 0, time.UTC),
@@ -230,8 +236,9 @@ var (
 			},
 		},
 		{
-			Id:   4,
-			Name: "Barry Dylan",
+			Id:              4,
+			Name:            "Barry Dylan",
+			OfficeAccessPin: nil,
 			Characteristics: TestUserCharacteristics{
 				"bipolar",
 			},
@@ -267,8 +274,9 @@ var (
 			Role: nil,
 		},
 		{
-			Id:   5,
-			Name: "Pam Poovey",
+			Id:              5,
+			Name:            "Pam Poovey",
+			OfficeAccessPin: ByteSlice{},
 			Characteristics: TestUserCharacteristics{
 				"inappropriate",
 			},

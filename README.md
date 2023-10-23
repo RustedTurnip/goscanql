@@ -144,6 +144,38 @@ match, but any of the `Colour` fields differ, they will be treated as two differ
 
 
 
+## ByteSlice
+
+If you have a column in your database with a type that effectively translates to a byte slice in go (`[]byte`) then
+by having that type directly in a struct, you may notice the undesirable behaviour of `goscanql` treating that type
+instead as a one-to-many relationship of single bytes, for example:
+
+```go
+type User struct {
+	ID  int `goscanql:"id"`
+	Pin []byte `goscanql:"pin"`
+}
+```
+
+`goscanql` would expect in this case, that the column `pin` is actually of type `byte` and expect that a single user
+could have many `pins`, each being a single `byte`, when actually a `pin` is a single value consisting of multiple
+`bytes`.
+
+To work around this issue, `goscanql` provides a type called `ByteSlice` that overrides the default "scan" behaviour
+and treats those `bytes` as the single value they were intended to be. To use this, you would simply change the type
+of the field `Pin` in the user example above to use `ByteSlice` like so:
+
+```go
+type User struct {
+	ID  int `goscanql:"id"`
+	Pin ByteSlice `goscanql:"pin"`
+}
+```
+
+`ByteSlice` has a base type of `[]byte`, meaning that it can be used in the same way.
+
+
+
 ## Limitations
 
 ### Unsupported fields

@@ -4,9 +4,109 @@ import (
 	"fmt"
 	"testing"
 	"time"
+	"unsafe"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestByteSlice_Scan(t *testing.T) {
+
+	tests := []struct {
+		name           string
+		scanInput      interface{}
+		byteSliceInput ByteSlice
+		expected       ByteSlice
+		expectedErr    error
+	}{
+		{
+			name:           "Valid Byte Slice Empty ByteSlice",
+			scanInput:      []byte("valid_string"),
+			byteSliceInput: ByteSlice(make([]byte, 0)),
+			expected:       ByteSlice("valid_string"),
+			expectedErr:    nil,
+		},
+		{
+			name:           "Valid Byte Slice Nil ByteSlice",
+			scanInput:      []byte("valid_string"),
+			byteSliceInput: nil,
+			expected:       ByteSlice("valid_string"),
+			expectedErr:    nil,
+		},
+		{
+			name:           "Valid Byte Slice Non-Empty NullString",
+			scanInput:      []byte("valid_string"),
+			byteSliceInput: ByteSlice("some old data"),
+			expected:       ByteSlice("valid_string"),
+			expectedErr:    nil,
+		},
+		{
+			name:           "Invalid Input Empty ByteSlice",
+			scanInput:      0,
+			byteSliceInput: ByteSlice{},
+			expected:       ByteSlice{},
+			expectedErr:    fmt.Errorf("ByteSlice received non-byte-slice type (int) during Scan"),
+		},
+		{
+			name:           "Invalid Input Nil ByteSlice",
+			scanInput:      0,
+			byteSliceInput: nil,
+			expected:       nil,
+			expectedErr:    fmt.Errorf("ByteSlice received non-byte-slice type (int) during Scan"),
+		},
+		{
+			name:           "Invalid Input Non-Empty ByteSlice",
+			scanInput:      0,
+			byteSliceInput: ByteSlice("some old data"),
+			expected:       ByteSlice("some old data"),
+			expectedErr:    fmt.Errorf("ByteSlice received non-byte-slice type (int) during Scan"),
+		},
+		{
+			name:           "Nil Input Empty ByteSlice",
+			scanInput:      nil,
+			byteSliceInput: ByteSlice{},
+			expected:       nil,
+			expectedErr:    nil,
+		},
+		{
+			name:           "Nil Input Nil ByteSlice",
+			scanInput:      nil,
+			byteSliceInput: nil,
+			expected:       nil,
+			expectedErr:    nil,
+		},
+		{
+			name:           "Nil Input Non-Empty ByteSlice",
+			scanInput:      nil,
+			byteSliceInput: ByteSlice("some old data"),
+			expected:       nil,
+			expectedErr:    nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+
+			// Act
+			err := test.byteSliceInput.Scan(test.scanInput)
+
+			fmt.Printf("%p\n", &test.byteSliceInput)
+
+			// Assert
+			assert.Equal(t, test.expected, test.byteSliceInput)
+			assert.Equal(t, test.expectedErr, err)
+
+			// assert that the output no longer references the input (by comparing the underlying
+			// slice pointers to make sure they are separate)
+			input, validInput := test.scanInput.([]byte)
+			if test.expected != nil && validInput {
+				pInput := unsafe.SliceData(unsafe.Slice(&input[0], len(input)))
+				pExpected := unsafe.SliceData(unsafe.Slice(&test.byteSliceInput[0], len(test.byteSliceInput)))
+
+				assert.NotSamef(t, pInput, pExpected, "ByteSlice output still references input when it should be separate")
+			}
+		})
+	}
+}
 
 func TestNullString_Scan(t *testing.T) {
 

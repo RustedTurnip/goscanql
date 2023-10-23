@@ -29,6 +29,35 @@ func implementsScanner(t reflect.Type) bool {
 	return t.Implements(reflect.TypeOf((*Scanner)(nil)).Elem())
 }
 
+// ByteSlice implements a type that can be used to scan a value from an sql row as
+// a slice of bytes. This field is to be used when a struct's field of []byte isn't
+// supposed to be treated as a one-to-many relationship of many single bytes.
+type ByteSlice []byte
+
+func (bs *ByteSlice) Scan(value interface{}) error {
+	if value == nil {
+		*bs = nil
+		return nil
+	}
+
+	b, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("ByteSlice received non-byte-slice type (%s) during Scan", reflect.TypeOf(value).String())
+	}
+
+	*bs = make([]byte, len(b))
+
+	// must copy instead of `*bs := b` to break reference (otherwise updates to
+	// b will affect *bs)
+	copy(*bs, b)
+
+	return nil
+}
+
+func (bs *ByteSlice) GetID() []byte {
+	return *bs
+}
+
 // NullString represents a string that can be null. If null, then the attribute
 // Valid will be set to false, otherwise the value stored in String represents the
 // string value. This type implements the goscanql Scanner interface and can be

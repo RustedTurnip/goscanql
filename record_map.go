@@ -57,9 +57,6 @@ func (rl recordList) insert(entry *fields, rv *reflect.Value, slice interface{})
 	}
 
 	for fieldName, child := range entry.oneToManys {
-		if child.isNil() {
-			continue
-		}
 		rlChild := recordList{}
 		rlChild.insert(child, nil, nil)
 		r.otmChildren[fieldName] = rlChild

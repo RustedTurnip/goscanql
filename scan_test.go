@@ -37,7 +37,6 @@ const (
 type TestUserCharacteristics []string
 
 func (c *TestUserCharacteristics) Scan(b interface{}) error {
-
 	if b == nil {
 		return nil
 	}
@@ -83,7 +82,6 @@ type TestVehicleMedium struct {
 }
 
 func Test_ExampleRowsToStructs(t *testing.T) {
-
 	// Arrange
 	// setup the example to allow with mock data
 	db, mock, err := sqlmock.New()
@@ -304,3 +302,63 @@ var (
 		},
 	}
 )
+
+func Test_RecordListNilMapAssignment(t *testing.T) {
+	// Arrange
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		panic(err)
+	}
+
+	columns := []string{"id", "name", "office_access_pin", "characteristics", "date_of_birth", "role_title", "role_department", "alias", "vehicle_type", "vehicle_colour", "vehicle_noise", "vehicle_medium_name"}
+	inputRows := sqlmock.NewRows(columns)
+
+	inputRows.AddRow(1, "Stirling Archer", []byte("1234"), "narcissistic,arrogant,selfish,insensitive,self-absorbed,sex-crazed", time.Date(1978, 12, 30, 0, 0, 0, 0, time.UTC), "field agent", "field operations", "", nil, nil, nil, nil)
+	inputRows.AddRow(1, "Stirling Archer", []byte("1234"), "narcissistic,arrogant,selfish,insensitive,self-absorbed,sex-crazed", time.Date(1978, 12, 30, 0, 0, 0, 0, time.UTC), "field agent", "field operations", "", "car", "black", "brum", "land")
+
+	mock.ExpectQuery(scanTestQuery).WillReturnRows(inputRows)
+
+	rows, err := db.Query(scanTestQuery)
+	if err != nil {
+		panic(err)
+	}
+
+	expected := []TestUser{
+		{
+			Id:              1,
+			Name:            "Stirling Archer",
+			OfficeAccessPin: ByteSlice{'1', '2', '3', '4'},
+			Characteristics: TestUserCharacteristics{"narcissistic", "arrogant", "selfish", "insensitive", "self-absorbed", "sex-crazed"},
+			DateOfBirth: NullTime{
+				Time:  time.Date(1978, 12, 30, 0, 0, 0, 0, time.UTC),
+				Valid: true,
+			},
+			Vehicles: []TestVehicle{
+				{
+					Type:   "car",
+					Colour: "black",
+					Noise:  "brum",
+					Mediums: []TestVehicleMedium{
+						{
+							Name: "land",
+						},
+					},
+				},
+			},
+			Aliases: []string{
+				"",
+			},
+			Role: &TestRole{
+				Title:      "field agent",
+				Department: "field operations",
+			},
+		},
+	}
+
+	// Act
+	result, err := RowsToStructs[TestUser](rows)
+
+	// Assert
+	assert.Nil(t, err)
+	assert.Equal(t, expected, result)
+}

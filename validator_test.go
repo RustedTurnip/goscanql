@@ -14,7 +14,6 @@ type cyclicExample struct {
 }
 
 func TestIsStruct(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		input    interface{}
@@ -54,7 +53,6 @@ func TestIsStruct(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Arrange
 			rType := reflect.TypeOf(test.input)
 
@@ -80,7 +78,6 @@ func (m arrayScanner) GetID() []byte {
 type arrayType [4]string
 
 func TestIsNotArray(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		input    interface{}
@@ -145,7 +142,6 @@ func TestIsNotArray(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Arrange
 			rType := reflect.TypeOf(test.input)
 
@@ -171,7 +167,6 @@ func (m mapScanner) GetID() []byte {
 type mapType map[int]string
 
 func TestIsNotMap(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		input    interface{}
@@ -241,7 +236,6 @@ func TestIsNotMap(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Arrange
 			rType := reflect.TypeOf(test.input)
 
@@ -267,7 +261,6 @@ func (m multidimensionalSliceScanner) GetID() []byte {
 type multidimensionalSliceType [][]string
 
 func TestIsNotMultidimensionalSlice(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		input    interface{}
@@ -331,7 +324,6 @@ func TestIsNotMultidimensionalSlice(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Arrange
 			rType := reflect.TypeOf(test.input)
 
@@ -357,7 +349,6 @@ func (f funcScanner) GetID() []byte {
 type funcType func()
 
 func TestIsNotFunc(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		input    interface{}
@@ -432,7 +423,6 @@ func TestIsNotFunc(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Arrange
 			rType := reflect.TypeOf(test.input)
 
@@ -458,7 +448,6 @@ func (c chanScanner) GetID() []byte {
 type chanType chan int
 
 func TestIsNotChan(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		input    interface{}
@@ -528,7 +517,6 @@ func TestIsNotChan(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Arrange
 			rType := reflect.TypeOf(test.input)
 
@@ -542,7 +530,6 @@ func TestIsNotChan(t *testing.T) {
 }
 
 func TestIsNotCustomInterface(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		input    interface{}
@@ -592,7 +579,6 @@ func TestIsNotCustomInterface(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Arrange
 			rt := reflect.TypeOf(test.input)
 
@@ -606,7 +592,6 @@ func TestIsNotCustomInterface(t *testing.T) {
 }
 
 func TestValidateType(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		input    interface{}
@@ -724,7 +709,6 @@ func TestValidateType(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Act
 			result := validateType(test.input)
 
@@ -735,7 +719,6 @@ func TestValidateType(t *testing.T) {
 }
 
 func TestGetPointerRootType(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		input    interface{}
@@ -775,7 +758,6 @@ func TestGetPointerRootType(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Assemble
 			input := reflect.TypeOf(test.input)
 			expected := reflect.TypeOf(test.expected)
@@ -790,7 +772,6 @@ func TestGetPointerRootType(t *testing.T) {
 }
 
 func TestGetSliceRootType(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		input    interface{}
@@ -815,7 +796,6 @@ func TestGetSliceRootType(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Assemble
 			input := reflect.TypeOf(test.input)
 			expected := reflect.TypeOf(test.expected)
@@ -839,7 +819,6 @@ type extraNestedCycleExampleNested struct {
 }
 
 func TestVerifyNoCycles(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		input    interface{}
@@ -867,7 +846,6 @@ func TestVerifyNoCycles(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Assemble
 			input := reflect.TypeOf(test.input)
 

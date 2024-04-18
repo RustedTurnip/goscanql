@@ -7,7 +7,6 @@ import (
 )
 
 func Test_fieldByTag(t *testing.T) {
-
 	testInputs := map[string]interface{}{
 		"NormalGoscanqlTaggedStruct": struct {
 			Foo       string   `goscanql:"foo"`
@@ -67,7 +66,6 @@ func Test_fieldByTag(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Arrange
 			inputValue := reflect.ValueOf(testInputs[test.inputValueKey])
 
@@ -90,7 +88,6 @@ func Test_fieldByTag(t *testing.T) {
 }
 
 func Test_getRootValue(t *testing.T) {
-
 	rootPrimitive := 0
 
 	tests := []struct {
@@ -109,7 +106,6 @@ func Test_getRootValue(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Arrange
 			input := reflect.ValueOf(test.input)
 			// rootPrimitive must be passed in as pointer otherwise reflect.Value will be created for a copy of
@@ -167,7 +163,6 @@ func generateTestFields() *fields {
 }
 
 func TestRecordList_insert(t *testing.T) {
-
 	// Arrange
 	inputFields := generateTestFields()
 
@@ -237,7 +232,6 @@ func TestRecordList_insert(t *testing.T) {
 }
 
 func TestRecordList_merge(t *testing.T) {
-
 	tests := []struct {
 		name               string
 		inputSlice         []arbitraryTestStruct
@@ -391,7 +385,6 @@ func TestRecordList_merge(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Arrange
 			inputFields := generateTestFields()
 

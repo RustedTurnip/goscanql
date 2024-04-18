@@ -24,7 +24,6 @@ func (e exampleScanner) GetID() []byte {
 }
 
 func TestInitialiseFields(t *testing.T) {
-
 	type childExample struct {
 		Foo int    `goscanql:"foo"`
 		Bar string `goscanql:"bar"`
@@ -174,7 +173,6 @@ func TestInitialiseFields(t *testing.T) {
 }
 
 func TestNewFields(t *testing.T) {
-
 	type testExample struct {
 		Foo int    `goscanql:"foo"`
 		Bar string `goscanql:"bar"`
@@ -243,7 +241,6 @@ func TestNewFields(t *testing.T) {
 	}
 
 	for _, test := range tests {
-
 		msg := fmt.Sprintf("%s: failed", test.name)
 
 		// execute sut
@@ -261,7 +258,6 @@ func TestNewFields(t *testing.T) {
 }
 
 func TestAddNewChild(t *testing.T) {
-
 	type relationship int
 
 	const (
@@ -356,7 +352,6 @@ func TestAddNewChild(t *testing.T) {
 	}
 
 	for _, test := range tests {
-
 		msg := fmt.Sprintf("%s: failed", test.name)
 
 		// execute sut
@@ -372,7 +367,6 @@ func TestAddNewChild(t *testing.T) {
 
 		// assess result based on expected relationship
 		if test.expectedRelationship == oneRelationship {
-
 			// check that the new field has been added to one-to-one children
 			assert.Containsf(t, test.fields.oneToOnes, test.inputName, msg)
 			// and that it hasn't been added to the one-to-manys children
@@ -380,20 +374,16 @@ func TestAddNewChild(t *testing.T) {
 
 			// assert that the child name has been added to the
 			assert.Equalf(t, test.inputName, test.fields.orderedOneToOneNames[len(test.fields.orderedOneToOneNames)-1], msg)
-
 		} else {
-
 			// check that the new field has been added to one-to-manys children
 			assert.Containsf(t, test.fields.oneToManys, test.inputName, msg)
 			// and that it hasn't been added to the one-to-ones children
 			assert.NotContainsf(t, test.fields.oneToOnes, test.inputName, msg)
-
 		}
 	}
 }
 
 func TestAddField(t *testing.T) {
-
 	tests := []struct {
 		name        string
 		inputName   string
@@ -464,7 +454,6 @@ func TestAddField(t *testing.T) {
 	}
 
 	for _, test := range tests {
-
 		err := test.fields.addField(test.inputName, test.inputObj)
 
 		// assert that error is expected
@@ -484,7 +473,6 @@ func TestAddField(t *testing.T) {
 }
 
 func TestAddScanner(t *testing.T) {
-
 	tests := []struct {
 		name         string
 		inputName    string
@@ -555,7 +543,6 @@ func TestAddScanner(t *testing.T) {
 	}
 
 	for _, test := range tests {
-
 		err := test.fields.addScanner(test.inputName, test.inputScanner)
 
 		// assert that error is expected
@@ -657,7 +644,6 @@ var (
 )
 
 func TestGetFieldReferences(t *testing.T) {
-
 	expected := map[string]interface{}{
 		"foo":                    referenceTestExample.references["foo"],
 		"bar":                    referenceTestExample.references["bar"],
@@ -682,7 +668,6 @@ func TestGetFieldReferences(t *testing.T) {
 }
 
 func TestGetByteReferences(t *testing.T) {
-
 	expected := map[string]*nullBytes{
 		"foo":                    referenceTestExample.nullFields["foo"],
 		"bar":                    referenceTestExample.nullFields["bar"],
@@ -709,7 +694,6 @@ func TestGetByteReferences(t *testing.T) {
 }
 
 func TestCrawlFields(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		fn       func(map[string]*fields) func(string, *fields) bool
@@ -735,7 +719,6 @@ func TestCrawlFields(t *testing.T) {
 			name: "Crawl All Fields With Early Exit",
 			fn: func(result map[string]*fields) func(string, *fields) bool {
 				return func(prefix string, f *fields) bool {
-
 					result[prefix] = f
 
 					// early exit if empty string by returning true, else continue
@@ -749,7 +732,6 @@ func TestCrawlFields(t *testing.T) {
 	}
 
 	for _, test := range tests {
-
 		msg := fmt.Sprintf("%s: failed", test.name)
 
 		// result for reached fields
@@ -769,7 +751,6 @@ func TestCrawlFields(t *testing.T) {
 }
 
 func TestBuildReferenceName(t *testing.T) {
-
 	tests := []struct {
 		name        string
 		inputPrefix string
@@ -819,7 +800,6 @@ func TestGetHash(t *testing.T) {
 }
 
 func TestIsNil(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		fields   *fields
@@ -883,7 +863,6 @@ func TestIsNil(t *testing.T) {
 }
 
 func TestIsMatch(t *testing.T) {
-
 	tests := []struct {
 		name     string
 		fields   *fields

@@ -73,7 +73,6 @@ type fields struct {
 //
 // Note: obj must be a reference to the object, e.g. of type *Struct, or *[]Struct.
 func (f *fields) addNewChild(name string, obj interface{}) error {
-
 	rv := reflect.ValueOf(obj)
 
 	// create new fields instance
@@ -114,7 +113,6 @@ func newFieldCollisionError(fieldName string) error {
 
 // addField will add a single field to the current fields (e.g. a string or int).
 func (f *fields) addField(name string, value interface{}) error {
-
 	// assert that field hasn't already been added
 	if _, ok := f.references[name]; ok {
 		return newFieldCollisionError(name)
@@ -135,7 +133,6 @@ func (f *fields) addField(name string, value interface{}) error {
 
 // addScanner will add a single scanner to the current scanners.
 func (f *fields) addScanner(name string, value Scanner) error {
-
 	// assert that scanner hasn't already been added as field
 	if _, ok := f.references[name]; ok {
 		return newFieldCollisionError(name)
@@ -157,11 +154,9 @@ func (f *fields) addScanner(name string, value Scanner) error {
 // getFieldReferences returns a map of all of the fields references (including any child
 // field references).
 func (f *fields) getFieldReferences() map[string]interface{} {
-
 	m := make(map[string]interface{})
 
 	f.crawlFields(func(prefix string, fi *fields) bool {
-
 		if fi.isNil() {
 			return true
 		}
@@ -183,11 +178,9 @@ func (f *fields) getFieldReferences() map[string]interface{} {
 // getNullFieldReferences returns a map of all of the null fieldreferences (including any child
 // references).
 func (f *fields) getNullFieldReferences() map[string]*nullBytes {
-
 	m := make(map[string]*nullBytes)
 
 	f.crawlFields(func(prefix string, fi *fields) bool {
-
 		for name, reference := range fi.nullFields {
 			m[buildReferenceName(prefix, name)] = reference
 		}
@@ -206,7 +199,6 @@ func (f *fields) crawlFields(fn func(string, *fields) bool) {
 // crawlFields will recursively iterate of each field of each fields and its children
 // with the added context of the prefix field which is used to reference child fields.
 func (f *fields) crawlFieldsWithPrefix(prefix string, fn func(string, *fields) bool) bool {
-
 	// if cancel signalled, return and don't bother processing this field's children
 	if fn(prefix, f) {
 		return true
@@ -230,7 +222,6 @@ func (f *fields) crawlFieldsWithPrefix(prefix string, fn func(string, *fields) b
 //
 // Prefix: pet, Name: animal := pet_animal
 func buildReferenceName(prefix, name string) string {
-
 	strs := make([]string, 0)
 
 	if prefix != "" {
@@ -246,7 +237,6 @@ func buildReferenceName(prefix, name string) string {
 
 // getHash will hash a fields entity so that it can be easily compared to another fields.
 func (f *fields) getHash() string {
-
 	raw := f.getBytePrint("")
 
 	// hash fields to create unique id for struct
@@ -259,25 +249,21 @@ func (f *fields) getHash() string {
 // getBytePrint will return a "fingerprint" of the current fields entity and it's one-to-one
 // children as an array of bytes.
 func (f *fields) getBytePrint(prefix string) []byte {
-
 	print := make([]byte, 0)
 
 	for _, key := range f.orderedFieldNames {
-
 		value := f.references[key]
 		strValue := fmt.Sprintf("{%s:%#v}", buildReferenceName(prefix, key), reflect.ValueOf(value).Elem().Interface())
 		print = append(print, []byte(strValue)...)
 	}
 
 	for _, key := range f.orderedScannerNames {
-
 		value := f.scannerReferences[key]
 		strValue := fmt.Sprintf("{%s:%s}", buildReferenceName(prefix, key), value.GetID())
 		print = append(print, []byte(strValue)...)
 	}
 
 	for _, key := range f.orderedOneToOneNames {
-
 		child := f.oneToOnes[key]
 		print = append(print, child.getBytePrint(key)...)
 	}
@@ -288,7 +274,6 @@ func (f *fields) getBytePrint(prefix string) []byte {
 // isNil will the incoming data to a fields (once it has been written to the nullFields)
 // to see if the object that the fields represents will be nil.
 func (f *fields) isNil() bool {
-
 	for _, b := range f.nullFields {
 		if !b.isNil {
 			return false
@@ -305,7 +290,6 @@ func (f *fields) isMatch(m *fields) bool {
 }
 
 func (f *fields) emptyNilFields() {
-
 	if f.isNil() {
 		// empty the object represented by the fields, e.g. *int would be set to nil,
 		// or int would be set to 0.
@@ -327,13 +311,11 @@ func (f *fields) emptyNilFields() {
 		slice := getRootValue(*fieldByTag(tag, getRootValue(reflect.ValueOf(f.obj))))
 		slice.Set(reflect.New(slice.Type()).Elem()) // set to empty slice
 	}
-
 }
 
 // scan will attempt to apply the provided scan function to the fields object
 // by providing it with all the field references so that values can be written.
 func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
-
 	byteRefs := mapFieldsToColumns(columns, f.getNullFieldReferences())
 
 	err := scan(byteRefs...)
@@ -355,7 +337,6 @@ func (f *fields) scan(columns []string, scan func(...interface{}) error) error {
 // newFields is the fields constructor that will process the provided object, and use
 // reflection to map it out and maintain references to the object's fields.
 func newFields(obj interface{}) (*fields, error) {
-
 	// instantiate root of obj to create fields around
 	rva := instantiateAndReturnAll(obj)
 	rv := rva[0]
@@ -363,7 +344,6 @@ func newFields(obj interface{}) (*fields, error) {
 	// if the obj is a slice, we must make obj represent an element of the slice instead of
 	// the slice itself as slices are the basis for one-to-many relationships
 	if rv.Kind() == reflect.Slice {
-
 		// get slice type, e.g. []*Example has a slice type of *Example
 		sliceType := reflect.TypeOf(rv.Interface()).Elem()
 
@@ -405,7 +385,6 @@ func newFields(obj interface{}) (*fields, error) {
 // initialise uses reflection to map it out and maintain references to the object's
 // fields.
 func (f *fields) initialise(prefix string) error {
-
 	rva := instantiateAndReturnAll(f.obj)
 
 	rv := rva[0]
@@ -421,7 +400,6 @@ func (f *fields) initialise(prefix string) error {
 
 	// if time.Time (this triggers when initialise is called for a slice value)
 	if _, ok := rv.Interface().(time.Time); ok {
-
 		err := f.addField(prefix, rv.Addr().Interface())
 		if err != nil {
 			return err
@@ -432,7 +410,6 @@ func (f *fields) initialise(prefix string) error {
 
 	// if type doesn't have nested fields (this triggers when initialise is called for a slice value)
 	if rv.Kind() != reflect.Struct {
-
 		err := f.addField(prefix, rv.Addr().Interface())
 		if err != nil {
 			return err
@@ -443,7 +420,6 @@ func (f *fields) initialise(prefix string) error {
 
 	// extract expected fields
 	for i := 0; i < t.NumField(); i++ {
-
 		fieldType := t.Field(i)
 		fieldValue := rv.Field(i)
 
@@ -465,7 +441,6 @@ func (f *fields) initialise(prefix string) error {
 		scanner := asScanner(fieldValueRoot)
 
 		switch {
-
 		// if field implements Scanner
 		case scanner != nil:
 			action = func() error {
@@ -544,13 +519,11 @@ func instantiateAndReturnAll[T any](t T) []reflect.Value {
 }
 
 func instantiateValue(val reflect.Value) []reflect.Value {
-
 	// get value of i (must pass in as pointer), see:
 	// https://stackoverflow.com/questions/34145072/can-you-initialise-a-pointer-variable-with-golang-reflect
 
 	// if we are not at root
 	if val.Kind() == reflect.Pointer {
-
 		// instantiate current value
 		val.Set(reflect.New(val.Type().Elem()))
 
@@ -565,7 +538,6 @@ func instantiateValue(val reflect.Value) []reflect.Value {
 // e.g. ExampleStruct, then the returned Scanner will be of the underlying type *ExampleStruct as a
 // pointer is required for the type to modify its attributes and affect the original.
 func asScanner(value reflect.Value) Scanner {
-
 	if value.Type().Kind() != reflect.Pointer {
 		value = value.Addr()
 	}

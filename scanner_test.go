@@ -10,7 +10,6 @@ import (
 )
 
 func TestByteSlice_Scan(t *testing.T) {
-
 	tests := []struct {
 		name           string
 		scanInput      interface{}
@@ -85,7 +84,6 @@ func TestByteSlice_Scan(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Act
 			err := test.byteSliceInput.Scan(test.scanInput)
 
@@ -109,7 +107,6 @@ func TestByteSlice_Scan(t *testing.T) {
 }
 
 func TestNullString_Scan(t *testing.T) {
-
 	tests := []struct {
 		name            string
 		scanInput       interface{}
@@ -190,7 +187,6 @@ func TestNullString_Scan(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Act
 			err := test.nullStringInput.Scan(test.scanInput)
 
@@ -202,7 +198,6 @@ func TestNullString_Scan(t *testing.T) {
 }
 
 func TestNullInt64_Scan(t *testing.T) {
-
 	tests := []struct {
 		name           string
 		scanInput      interface{}
@@ -283,7 +278,6 @@ func TestNullInt64_Scan(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Act
 			err := test.nullInt64Input.Scan(test.scanInput)
 
@@ -295,7 +289,6 @@ func TestNullInt64_Scan(t *testing.T) {
 }
 
 func TestNullInt32_Scan(t *testing.T) {
-
 	tests := []struct {
 		name           string
 		scanInput      interface{}
@@ -376,7 +369,6 @@ func TestNullInt32_Scan(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Act
 			err := test.nullInt32Input.Scan(test.scanInput)
 
@@ -388,7 +380,6 @@ func TestNullInt32_Scan(t *testing.T) {
 }
 
 func TestNullInt16_Scan(t *testing.T) {
-
 	tests := []struct {
 		name           string
 		scanInput      interface{}
@@ -469,7 +460,6 @@ func TestNullInt16_Scan(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Act
 			err := test.nullInt16Input.Scan(test.scanInput)
 
@@ -481,7 +471,6 @@ func TestNullInt16_Scan(t *testing.T) {
 }
 
 func TestNullByte_Scan(t *testing.T) {
-
 	tests := []struct {
 		name          string
 		scanInput     interface{}
@@ -562,7 +551,6 @@ func TestNullByte_Scan(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Act
 			err := test.nullByteInput.Scan(test.scanInput)
 
@@ -574,7 +562,6 @@ func TestNullByte_Scan(t *testing.T) {
 }
 
 func TestNullFloat64_Scan(t *testing.T) {
-
 	tests := []struct {
 		name             string
 		scanInput        interface{}
@@ -655,7 +642,6 @@ func TestNullFloat64_Scan(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Act
 			err := test.nullFloat64Input.Scan(test.scanInput)
 
@@ -667,7 +653,6 @@ func TestNullFloat64_Scan(t *testing.T) {
 }
 
 func TestNullBool_Scan(t *testing.T) {
-
 	tests := []struct {
 		name          string
 		scanInput     interface{}
@@ -748,7 +733,6 @@ func TestNullBool_Scan(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Act
 			err := test.nullBoolInput.Scan(test.scanInput)
 
@@ -760,7 +744,6 @@ func TestNullBool_Scan(t *testing.T) {
 }
 
 func TestNullTime_Scan(t *testing.T) {
-
 	testTime := time.Date(2022, time.August, 22, 12, 45, 36, 239839283, time.UTC)
 
 	tests := []struct {
@@ -843,7 +826,6 @@ func TestNullTime_Scan(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			// Act
 			err := test.nullTimeInput.Scan(test.scanInput)
 

@@ -17,11 +17,9 @@ var (
 )
 
 func mapFieldsToColumns[T any](cols []string, fields map[string]T) []interface{} {
-
 	values := make([]interface{}, len(cols))
 
 	for i, col := range cols {
-
 		value, ok := fields[col]
 		if !ok {
 			values[i] = &[]byte{}
@@ -35,7 +33,6 @@ func mapFieldsToColumns[T any](cols []string, fields map[string]T) []interface{}
 }
 
 func scanRows[T any](rows *sql.Rows) ([]T, error) {
-
 	var zero T
 
 	if err := validateType(zero); err != nil {
@@ -50,7 +47,6 @@ func scanRows[T any](rows *sql.Rows) ([]T, error) {
 	}
 
 	for rows.Next() {
-
 		entry := new(T)
 
 		fields, err := newFields(entry)
@@ -82,7 +78,6 @@ func RowsToStructs[T any](rows *sql.Rows) ([]T, error) {
 //
 // If more than one struct is produced, an error will be returned.
 func RowsToStruct[T any](rows *sql.Rows) (T, error) {
-
 	var zero T // effectively nil (as type is unknown, we can't just return nil)
 
 	result, err := scanRows[T](rows)

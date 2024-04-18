@@ -41,7 +41,6 @@ type Vehicle struct {
 }
 
 func ExampleRowsToStructs() {
-
 	// setup the example to allow with mock data
 	db, mock, err := sqlmock.New()
 	if err != nil {

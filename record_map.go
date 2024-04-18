@@ -42,7 +42,6 @@ type recordMap[T any] struct {
 
 // insert will add the provided value of rv to the provided slice as a new value.
 func (rl recordList) insert(entry *fields, rv *reflect.Value, slice interface{}) {
-
 	// only perform append if the provided value isn't nil (suggesting that the insert is at
 	// the point in the fields where it needs to be appended). Children after this point don't
 	// need to be appended because they already exist in obj.
@@ -70,7 +69,6 @@ func (rl recordList) insert(entry *fields, rv *reflect.Value, slice interface{})
 // one-to-many relationship is found where no child matches the hash of the fields, this will
 // be added as a new value in the one-to-many slice.
 func (rl recordList) merge(entry *fields, rv *reflect.Value, slice interface{}) {
-
 	if entry.isNil() {
 		return
 	}
@@ -84,7 +82,6 @@ func (rl recordList) merge(entry *fields, rv *reflect.Value, slice interface{}) 
 	match := getRootValue(reflect.ValueOf(slice).Elem().Index(f.index))
 
 	for fieldName, child := range entry.oneToManys {
-
 		childSlice := getRootValue(*fieldByTag(fieldName, match))
 		rvChild := reflect.ValueOf(child.obj).Elem()
 
@@ -113,7 +110,6 @@ func newRecordMap[T any]() *recordMap[T] {
 // the field is tagged with goscanql). If no field matches the provided tag, then nil is
 // returned.
 func fieldByTag(tag string, v reflect.Value) *reflect.Value {
-
 	tv := v.Type()
 
 	for i := 0; i < v.NumField(); i++ {
@@ -134,7 +130,6 @@ func fieldByTag(tag string, v reflect.Value) *reflect.Value {
 // Note: if the provided value isn't fully instantiated, i.e. a pointer to a nil value, then
 // this will cause problems when trying to call functions like .Type() on the returned value.
 func getRootValue(v reflect.Value) reflect.Value {
-
 	for v.Kind() == reflect.Pointer {
 		v = v.Elem()
 	}

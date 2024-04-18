@@ -52,7 +52,6 @@ func isStruct(t reflect.Type) error {
 // isNotArray takes a reflect.Type (t) and returns an error if it is an array (or nil
 // otherwise).
 func isNotArray(t reflect.Type) error {
-
 	t = getPointerRootType(t)
 
 	// if type (or pointer to type) implements Scanner, then it is exempt
@@ -62,7 +61,6 @@ func isNotArray(t reflect.Type) error {
 
 	// recursively search slice types until base type found
 	if t.Kind() == reflect.Slice {
-
 		// before assessing nested type to see if it is an array, we must make sure that the nested
 		// type isn't exempt from the validations by implementing Scanner.
 		if implementsScanner(t) {
@@ -82,7 +80,6 @@ func isNotArray(t reflect.Type) error {
 // isNotMap takes a reflect.Type (t) and returns an error if it is a map (or nil
 // otherwise).
 func isNotMap(t reflect.Type) error {
-
 	t = getPointerRootType(t)
 
 	// if type (or pointer to type) implements Scanner, then it is exempt
@@ -105,7 +102,6 @@ func isNotMap(t reflect.Type) error {
 // isNotMultidimensionalSlice takes a reflect.Type (t) and returns an error if
 // it is a multi-dimensional slice (or nil otherwise).
 func isNotMultidimensionalSlice(t reflect.Type) error {
-
 	t = getPointerRootType(t)
 
 	// if type (or pointer to type) implements Scanner, then it is exempt
@@ -136,7 +132,6 @@ func isNotMultidimensionalSlice(t reflect.Type) error {
 // isNotFunc takes a reflect.Type (t) and returns an error if it is a function (or
 // the nested type if it is a slice/array) or nil otherwise.
 func isNotFunc(t reflect.Type) error {
-
 	t = getPointerRootType(t)
 
 	// if type (or pointer to type) implements Scanner, then it is exempt
@@ -159,7 +154,6 @@ func isNotFunc(t reflect.Type) error {
 // isNotChan takes a reflect.Type (t) and returns an error if it is a chan (or
 // the nested type if it is a slice/array) or nil otherwise.
 func isNotChan(t reflect.Type) error {
-
 	t = getPointerRootType(t)
 
 	// if type (or pointer to type) implements Scanner, then it is exempt
@@ -182,7 +176,6 @@ func isNotChan(t reflect.Type) error {
 // isNotCustomInterface takes a type and returns an error when the type is an interface other than
 // interface {}.
 func isNotCustomInterface(t reflect.Type) error {
-
 	t = getPointerRootType(t)
 
 	// recursively search array/slice types until base type found
@@ -205,7 +198,6 @@ func isNotCustomInterface(t reflect.Type) error {
 // validateType analyses the provided input type and ensures that it will is valid based on
 // goscanql's input rules (including no cyclic structs).
 func validateType(it interface{}) error {
-
 	t := reflect.TypeOf(it)
 
 	// run checks on input type
@@ -240,7 +232,6 @@ func validateType(it interface{}) error {
 //
 // For example, ****[]string returns []string, **[]*string returns []*string and so on.
 func getPointerRootType(t reflect.Type) reflect.Type {
-
 	if t.Kind() != reflect.Pointer {
 		return t
 	}
@@ -258,7 +249,6 @@ func getPointerRootType(t reflect.Type) reflect.Type {
 // *string as the type (leaving the pointer on the string type even though the
 // pointers to slices have been treated as slices).
 func getSliceRootType(t reflect.Type) reflect.Type {
-
 	raw := getPointerRootType(t)
 
 	if raw.Kind() != reflect.Slice {
@@ -275,7 +265,6 @@ func getSliceRootType(t reflect.Type) reflect.Type {
 // NOTE: this function assumes that t is a struct type, any other type will result in
 // a panic.
 func verifyNoCycles(t reflect.Type) error {
-
 	t = getPointerRootType(t)
 
 	if t.Kind() != reflect.Struct {
@@ -297,12 +286,10 @@ func verifyNoCycles(t reflect.Type) error {
 // NOTE: this function assumes that t is a struct type, any other type will result in
 // a panic.
 func hasCycle(t reflect.Type, m map[reflect.Type]interface{}) bool {
-
 	m[t] = struct{}{}
 	defer delete(m, t)
 
 	for i := 0; i < t.NumField(); i++ {
-
 		if !isGoscanqlField(t.Field(i)) {
 			continue
 		}
@@ -343,7 +330,6 @@ func isGoscanqlField(f reflect.StructField) bool {
 // If a non-struct type is provided, the function will be run on the provided type
 // and return immediately (as there are now more fields to traverse).
 func traverseType(t reflect.Type, f func(t reflect.Type) error) error {
-
 	t = getPointerRootType(t)
 
 	// check input's type for compatibility
@@ -364,7 +350,6 @@ func traverseType(t reflect.Type, f func(t reflect.Type) error) error {
 
 	// if struct, traverse each sub-field
 	for i := 0; i < t.NumField(); i++ {
-
 		// if the field isn't tagged as goscanql, ignore
 		if !isGoscanqlField(t.Field(i)) {
 			continue

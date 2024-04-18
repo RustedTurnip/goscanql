@@ -83,7 +83,6 @@ func (ns *NullString) Scan(value interface{}) error {
 }
 
 func (ns *NullString) GetID() []byte {
-
 	if !ns.Valid {
 		return nil
 	}
@@ -116,7 +115,6 @@ func (ni *NullInt64) Scan(value interface{}) error {
 }
 
 func (ni *NullInt64) GetID() []byte {
-
 	if !ni.Valid {
 		return nil
 	}
@@ -149,7 +147,6 @@ func (ni *NullInt32) Scan(value interface{}) error {
 }
 
 func (ni *NullInt32) GetID() []byte {
-
 	if !ni.Valid {
 		return nil
 	}
@@ -182,7 +179,6 @@ func (ni *NullInt16) Scan(value interface{}) error {
 }
 
 func (ni *NullInt16) GetID() []byte {
-
 	if !ni.Valid {
 		return nil
 	}
@@ -215,7 +211,6 @@ func (ni *NullByte) Scan(value interface{}) error {
 }
 
 func (ni *NullByte) GetID() []byte {
-
 	if !ni.Valid {
 		return nil
 	}
@@ -248,7 +243,6 @@ func (ni *NullFloat64) Scan(value interface{}) error {
 }
 
 func (ni *NullFloat64) GetID() []byte {
-
 	if !ni.Valid {
 		return nil
 	}
@@ -281,7 +275,6 @@ func (ni *NullBool) Scan(value interface{}) error {
 }
 
 func (ni *NullBool) GetID() []byte {
-
 	if !ni.Valid {
 		return nil
 	}
@@ -314,7 +307,6 @@ func (ni *NullTime) Scan(value interface{}) error {
 }
 
 func (ni *NullTime) GetID() []byte {
-
 	if !ni.Valid {
 		return nil
 	}

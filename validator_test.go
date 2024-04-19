@@ -9,8 +9,8 @@ import (
 )
 
 type cyclicExample struct {
-	Str   string         `goscanql:"str"`
-	Cycle *cyclicExample `goscanql:"cycle"`
+	Str   string         `sql:"str"`
+	Cycle *cyclicExample `sql:"cycle"`
 }
 
 func TestIsStruct(t *testing.T) {
@@ -600,14 +600,14 @@ func TestValidateType(t *testing.T) {
 		{
 			name: "StructInput_NoError",
 			input: struct {
-				AValidField struct{} `goscanql:"a_valid_field"`
+				AValidField struct{} `sql:"a_valid_field"`
 			}{},
 			expected: nil,
 		},
 		{
 			name: "PointerStructInput_NoError",
 			input: &struct {
-				AValidField struct{} `goscanql:"a_valid_field"`
+				AValidField struct{} `sql:"a_valid_field"`
 			}{},
 			expected: nil,
 		},
@@ -624,84 +624,84 @@ func TestValidateType(t *testing.T) {
 		{
 			name: "StructWithArrayInput_ProducesError",
 			input: struct {
-				A [4]int `goscanql:"a"`
+				A [4]int `sql:"a"`
 			}{},
 			expected: fmt.Errorf("arrays are not supported ([4]int), consider using a slice instead"),
 		},
 		{
 			name: "StructWithMapInput_ProducesError",
 			input: struct {
-				M map[string]interface{} `goscanql:"m"`
+				M map[string]interface{} `sql:"m"`
 			}{},
 			expected: fmt.Errorf("maps are not supported (map[string]interface {}), consider using a slice instead"),
 		},
 		{
 			name: "StructWithMultiDimensionalSliceInput_ProducesError",
 			input: struct {
-				MS [][]struct{} `goscanql:"ms"`
+				MS [][]struct{} `sql:"ms"`
 			}{},
 			expected: fmt.Errorf("multi-dimensional slices are not supported ([][]struct {}), consider using a slice instead"),
 		},
 		{
 			name: "StructWithFuncInput_ProducesError",
 			input: struct {
-				Fn func() `goscanql:"fn"`
+				Fn func() `sql:"fn"`
 			}{},
 			expected: fmt.Errorf("functions are not supported (func())"),
 		},
 		{
 			name: "StructWithChanInput_ProducesError",
 			input: struct {
-				Ch chan int `goscanql:"ch"`
+				Ch chan int `sql:"ch"`
 			}{},
 			expected: fmt.Errorf("channels are not supported (chan int)"),
 		},
 		{
 			name: "StructCycleInput_ProducesError",
 			input: struct {
-				EC cyclicExample `goscanql:"ec"`
+				EC cyclicExample `sql:"ec"`
 			}{},
-			expected: fmt.Errorf("goscanql does not support cyclic structs: struct { EC goscanql.cyclicExample \"goscanql:\\\"ec\\\"\" }"),
+			expected: fmt.Errorf("goscanql does not support cyclic structs: struct { EC goscanql.cyclicExample \"sql:\\\"ec\\\"\" }"),
 		},
 		{
 			name: "StructWithMultiDimensionalSliceScannerInput_NoError",
 			input: struct {
-				MS multidimensionalSliceScanner `goscanql:"ms"`
+				MS multidimensionalSliceScanner `sql:"ms"`
 			}{},
 			expected: nil,
 		},
 		{
 			name: "StructWithMultiDimensionalSliceInputTypedField_ProducesError",
 			input: struct {
-				MS multidimensionalSliceType `goscanql:"ms"`
+				MS multidimensionalSliceType `sql:"ms"`
 			}{},
 			expected: fmt.Errorf("multi-dimensional slices are not supported (goscanql.multidimensionalSliceType), consider using a slice instead"),
 		},
 		{
 			name: "SliceOfStructWithMultiDimensionalSliceScannerInput_NoError",
 			input: struct {
-				MS []multidimensionalSliceScanner `goscanql:"ms"`
+				MS []multidimensionalSliceScanner `sql:"ms"`
 			}{},
 			expected: nil,
 		},
 		{
 			name: "MultiDimensionalStructWithMultiDimensionalSliceScannerInput_ProducesError",
 			input: struct {
-				MS [][]multidimensionalSliceScanner `goscanql:"ms"`
+				MS [][]multidimensionalSliceScanner `sql:"ms"`
 			}{},
 			expected: fmt.Errorf("multi-dimensional slices are not supported ([][]goscanql.multidimensionalSliceScanner), consider using a slice instead"),
 		},
 		{
 			name: "StructWithAnyInterfaceAsField_NoError",
 			input: struct {
-				I interface{} `goscanql:"i"`
+				I interface{} `sql:"i"`
 			}{},
 			expected: nil,
 		},
 		{
 			name: "StructWithNonAnyInterfaceAsField_ProducesError",
 			input: struct {
-				S Scanner `goscanql:"s"`
+				S Scanner `sql:"s"`
 			}{},
 			expected: fmt.Errorf("interface types other than interface{} are not supported (goscanql.Scanner)"),
 		},
@@ -810,12 +810,12 @@ func TestGetSliceRootType(t *testing.T) {
 }
 
 type extraNestedCycleExample struct {
-	I     int                           `goscanql:"i"`
-	ENCED extraNestedCycleExampleNested `goscanql:"enced"`
+	I     int                           `sql:"i"`
+	ENCED extraNestedCycleExampleNested `sql:"enced"`
 }
 
 type extraNestedCycleExampleNested struct {
-	ENCE *extraNestedCycleExampleNested `goscanql:"ence"`
+	ENCE *extraNestedCycleExampleNested `sql:"ence"`
 }
 
 func TestVerifyNoCycles(t *testing.T) {
@@ -832,10 +832,10 @@ func TestVerifyNoCycles(t *testing.T) {
 		{
 			name: "CyclicStruct_ProducesError",
 			input: struct {
-				Str string         `goscanql:"str"`
-				CE  *cyclicExample `goscanql:"ce"`
+				Str string         `sql:"str"`
+				CE  *cyclicExample `sql:"ce"`
 			}{},
-			expected: fmt.Errorf("goscanql does not support cyclic structs: struct { Str string \"goscanql:\\\"str\\\"\"; CE *goscanql.cyclicExample \"goscanql:\\\"ce\\\"\" }"),
+			expected: fmt.Errorf("goscanql does not support cyclic structs: struct { Str string \"sql:\\\"str\\\"\"; CE *goscanql.cyclicExample \"sql:\\\"ce\\\"\" }"),
 		},
 		{
 			name:     "NestedCyclicStruct_ProducesError",

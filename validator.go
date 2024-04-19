@@ -315,9 +315,9 @@ func hasCycle(t reflect.Type, m map[reflect.Type]interface{}) bool {
 	return false
 }
 
-// isGoscanqlField takes a reflect.Field (f) and evaluates whether it is a
-// goscanql-tagged field or not (meaning the parent struct has it tagged with
-// `goscanql:"tag_name"`). If so, true is returned, otherwise false.
+// isGoscanqlField takes a reflect.Field (f) and evaluates whether it is a field
+// designated for goscanql or not (meaning the parent struct has it tagged with
+// `sql:"tag_name"`). If so, true is returned, otherwise false.
 func isGoscanqlField(f reflect.StructField) bool {
 	_, b := f.Tag.Lookup(scanqlTag)
 	return b
@@ -350,7 +350,7 @@ func traverseType(t reflect.Type, f func(t reflect.Type) error) error {
 
 	// if struct, traverse each sub-field
 	for i := 0; i < t.NumField(); i++ {
-		// if the field isn't tagged as goscanql, ignore
+		// if the field isn't tagged for goscanql, ignore
 		if !isGoscanqlField(t.Field(i)) {
 			continue
 		}

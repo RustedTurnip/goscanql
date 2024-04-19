@@ -11,9 +11,9 @@
 
 ```go
 type User struct {
-	Id       int64  `goscanql:"id"`
-	Name     string `goscanql:"name"`
-	Username string `goscanql:"username"`
+	Id       int64  `sql:"id"`
+	Name     string `sql:"name"`
+	Username string `sql:"username"`
 }
 
 rows, err := db.Query('SELECT * FROM users')
@@ -34,9 +34,9 @@ If a field implements the `goscanql.Scanner` interface, then the SQL value will 
 
 ```go
 type User struct {
-	Id       goscanql.NullInt64 `goscanql:"id"`
-	Name     string             `goscanql:"name"`
-	Username string             `goscanql:"username"`
+	Id       goscanql.NullInt64 `sql:"id"`
+	Name     string             `sql:"name"`
+	Username string             `sql:"username"`
 }
 
 rows, err := db.Query('SELECT * FROM users')
@@ -50,7 +50,7 @@ users, err := goscanql.RowsToStructs[*User](rows)
 
 As `goscanql.NullInt64` implements the scanner interface, the value of the sql query under the column `id` will be
 passed directly into the `sql.NullInt64` struct (whereas otherwise, the `sql.NullInt` struct would have been analysed
-for sub-fields that have `goscanql` tags).
+for sub-fields that have `sql` tags).
 
 
 
@@ -61,23 +61,23 @@ common elements and append children with differing elements to child slices, for
 
 ```go
 type User struct {
-	Id       int64    `goscanql:"id"`
-	Name     string   `goscanql:"name"`
-	Username string   `goscanql:"username"`
-	Aliases  []string `goscanql:"aliases"`
-	Pets     []Pet    `goscanql:"pets"`
+	Id       int64    `sql:"id"`
+	Name     string   `sql:"name"`
+	Username string   `sql:"username"`
+	Aliases  []string `sql:"aliases"`
+	Pets     []Pet    `sql:"pets"`
 }
 
 type Pet struct {
-	Animal string  `goscanql:"animal"`
-	Name   string  `goscanql:"name"`
-	Colour *Colour `goscanql:"colour"`
+	Animal string  `sql:"animal"`
+	Name   string  `sql:"name"`
+	Colour *Colour `sql:"colour"`
 }
 
 type Colour struct {
-	Red   int8 `goscanql:"red"`
-	Green int8 `goscanql:"green"`
-	Blue  int8 `goscanql:"blue"`
+	Red   int8 `sql:"red"`
+	Green int8 `sql:"green"`
+	Blue  int8 `sql:"blue"`
 }
 
 rows, err := db.Query('
@@ -107,7 +107,7 @@ In the example above, you can see how the gocanql package handles composite stru
 children of a struct, (e.g. how `[]Pets` represents entries of the pet table, and how a user can have multiple pets).
 
 When working with nested structs, the field in the SQL query must be aliased to show that it belongs as a child of 
-that struct by prefixing the alias with the `goscanql` tag of the parent, for instance in the example above, every 
+that struct by prefixing the alias with the `sql` tag of the parent, for instance in the example above, every 
 field that belongs to the `Pets` struct is prefixed with:
 
 - `pets_`
@@ -152,8 +152,8 @@ instead as a one-to-many relationship of single bytes, for example:
 
 ```go
 type User struct {
-	ID  int    `goscanql:"id"`
-	Pin []byte `goscanql:"pin"`
+	ID  int    `sql:"id"`
+	Pin []byte `sql:"pin"`
 }
 ```
 
@@ -167,8 +167,8 @@ of the field `Pin` in the user example above to use `ByteSlice` like so:
 
 ```go
 type User struct {
-	ID  int       `goscanql:"id"`
-	Pin ByteSlice `goscanql:"pin"`
+	ID  int       `sql:"id"`
+	Pin ByteSlice `sql:"pin"`
 }
 ```
 
@@ -192,10 +192,10 @@ for example:
 
 ```go
 type User struct {
-	Id       int64   `goscanql:"id"`
-	Name     string  `goscanql:"name"`
-	Username string  `goscanql:"username"`
-	Friends  []*User `goscanql:"friends"`
+	Id       int64   `sql:"id"`
+	Name     string  `sql:"name"`
+	Username string  `sql:"username"`
+	Friends  []*User `sql:"friends"`
 }
 ```
 

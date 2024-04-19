@@ -51,34 +51,34 @@ func (c *TestUserCharacteristics) ID() []byte {
 
 // User represents an example user struct that you might want to parse data into
 type TestUser struct {
-	Id              int                     `goscanql:"id"`
-	Name            string                  `goscanql:"name"`
-	OfficeAccessPin ByteSlice               `goscanql:"office_access_pin"`
-	Characteristics TestUserCharacteristics `goscanql:"characteristics"`
-	DateOfBirth     NullTime                `goscanql:"date_of_birth"`
-	Vehicles        []TestVehicle           `goscanql:"vehicle"`
-	Aliases         []string                `goscanql:"alias"`
-	Role            *TestRole               `goscanql:"role"`
+	Id              int                     `sql:"id"`
+	Name            string                  `sql:"name"`
+	OfficeAccessPin ByteSlice               `sql:"office_access_pin"`
+	Characteristics TestUserCharacteristics `sql:"characteristics"`
+	DateOfBirth     NullTime                `sql:"date_of_birth"`
+	Vehicles        []TestVehicle           `sql:"vehicle"`
+	Aliases         []string                `sql:"alias"`
+	Role            *TestRole               `sql:"role"`
 }
 
 // Role represents the User's position in their organisation, carrying with it any
 // relevant attributes
 type TestRole struct {
-	Title      string `goscanql:"title"`
-	Department string `goscanql:"department"`
+	Title      string `sql:"title"`
+	Department string `sql:"department"`
 }
 
 // Vehicle represents an example vehicle struct that you might want to parse data into
 type TestVehicle struct {
-	Type    string              `goscanql:"type"`
-	Colour  string              `goscanql:"colour"`
-	Noise   string              `goscanql:"noise"`
-	Mediums []TestVehicleMedium `goscanql:"medium"`
+	Type    string              `sql:"type"`
+	Colour  string              `sql:"colour"`
+	Noise   string              `sql:"noise"`
+	Mediums []TestVehicleMedium `sql:"medium"`
 }
 
 // VehicleMedium represents the "medium" upon which a vehicle operates
 type TestVehicleMedium struct {
-	Name string `goscanql:"name"`
+	Name string `sql:"name"`
 }
 
 func Test_ExampleRowsToStructs(t *testing.T) {

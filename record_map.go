@@ -107,7 +107,7 @@ func newRecordMap[T any]() *recordMap[T] {
 }
 
 // fieldByTag will look up a field of the provided value (v) by the field's tag value (where
-// the field is tagged with goscanql). If no field matches the provided tag, then nil is
+// the field is tagged with sql). If no field matches the provided tag, then nil is
 // returned.
 func fieldByTag(tag string, v reflect.Value) *reflect.Value {
 	tv := v.Type()

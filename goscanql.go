@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	scanqlTag = "goscanql"
+	scanqlTag = "sql"
 )
 
 var (

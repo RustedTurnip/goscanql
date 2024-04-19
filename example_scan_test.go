@@ -24,20 +24,20 @@ const (
 
 // User represents an example user struct that you might want to parse data into
 type User struct {
-	Id          int         `goscanql:"id"`
-	Name        string      `goscanql:"name"`
-	DateOfBirth time.Time   `goscanql:"date_of_birth"`
-	Nemesis     NullString  `goscanql:"nemesis"`
-	Catchphrase interface{} `goscanql:"catchphrase"`
-	Vehicles    []Vehicle   `goscanql:"vehicle"`
+	Id          int         `sql:"id"`
+	Name        string      `sql:"name"`
+	DateOfBirth time.Time   `sql:"date_of_birth"`
+	Nemesis     NullString  `sql:"nemesis"`
+	Catchphrase interface{} `sql:"catchphrase"`
+	Vehicles    []Vehicle   `sql:"vehicle"`
 }
 
 // Vehicle represents an example vehicle struct that you might want to parse data into
 type Vehicle struct {
-	Medium string `goscanql:"medium"`
-	Type   string `goscanql:"type"`
-	Colour string `goscanql:"colour"`
-	Noise  string `goscanql:"noise"`
+	Medium string `sql:"medium"`
+	Type   string `sql:"type"`
+	Colour string `sql:"colour"`
+	Noise  string `sql:"noise"`
 }
 
 func ExampleRowsToStructs() {

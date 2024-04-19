@@ -25,23 +25,23 @@ func (e exampleScanner) ID() []byte {
 
 func TestInitialiseFields(t *testing.T) {
 	type childExample struct {
-		Foo int    `goscanql:"foo"`
-		Bar string `goscanql:"bar"`
+		Foo int    `sql:"foo"`
+		Bar string `sql:"bar"`
 	}
 
 	objExample := &struct {
-		ID                  int    `goscanql:"id"`
-		Name                string `goscanql:"name"`
+		ID                  int    `sql:"id"`
+		Name                string `sql:"name"`
 		UnnamedField        string
-		TimeExample         time.Time        `goscanql:"time"`
-		Scanner             exampleScanner   `goscanql:"scanner"`
-		ScannerPointer      *exampleScanner  `goscanql:"scanner_pointer"`
-		Child               childExample     `goscanql:"child"`
-		ChildPointer        *childExample    `goscanql:"child_pointer"`
-		ChildPointerPointer **childExample   `goscanql:"child_pointer_pointer"`
-		Children            []childExample   `goscanql:"children"`
-		ChildrenPointer     *[]childExample  `goscanql:"children_pointer"`
-		ChildrenScanners    []exampleScanner `goscanql:"children_scanners"`
+		TimeExample         time.Time        `sql:"time"`
+		Scanner             exampleScanner   `sql:"scanner"`
+		ScannerPointer      *exampleScanner  `sql:"scanner_pointer"`
+		Child               childExample     `sql:"child"`
+		ChildPointer        *childExample    `sql:"child_pointer"`
+		ChildPointerPointer **childExample   `sql:"child_pointer_pointer"`
+		Children            []childExample   `sql:"children"`
+		ChildrenPointer     *[]childExample  `sql:"children_pointer"`
+		ChildrenScanners    []exampleScanner `sql:"children_scanners"`
 	}{}
 
 	subject := &fields{
@@ -174,8 +174,8 @@ func TestInitialiseFields(t *testing.T) {
 
 func TestNewFields(t *testing.T) {
 	type testExample struct {
-		Foo int    `goscanql:"foo"`
-		Bar string `goscanql:"bar"`
+		Foo int    `sql:"foo"`
+		Bar string `sql:"bar"`
 	}
 
 	testInputs := map[string]interface{}{

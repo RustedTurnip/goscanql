@@ -8,10 +8,10 @@ import (
 
 func Test_fieldByTag(t *testing.T) {
 	testInputs := map[string]interface{}{
-		"NormalGoscanqlTaggedStruct": struct {
-			Foo       string   `goscanql:"foo"`
-			Bar       int      `goscanql:"bar"`
-			Arbitrary struct{} `goscanql:"arbitrary"`
+		"NormalSQLTaggedStruct": struct {
+			Foo       string   `sql:"foo"`
+			Bar       int      `sql:"bar"`
+			Arbitrary struct{} `sql:"arbitrary"`
 		}{},
 		"OtherTaggedStruct": struct {
 			Foo       string   `json:"foo"`
@@ -24,10 +24,10 @@ func Test_fieldByTag(t *testing.T) {
 			Arbitrary struct{}
 		}{},
 		"NestedTaggedStruct": struct {
-			Bar       int `goscanql:"bar"`
+			Bar       int `sql:"bar"`
 			Arbitrary struct {
-				Foo string `goscanql:"foo"`
-			} `goscanql:"arbitrary"`
+				Foo string `sql:"foo"`
+			} `sql:"arbitrary"`
 		}{},
 	}
 
@@ -38,10 +38,10 @@ func Test_fieldByTag(t *testing.T) {
 		expected      interface{}
 	}{
 		{
-			name:          "GivenGoscanqlTag_ThenFieldValueReturned",
+			name:          "GivenSQLTag_ThenFieldValueReturned",
 			inputTag:      "foo",
-			inputValueKey: "NormalGoscanqlTaggedStruct",
-			expected: referenceField(reflect.ValueOf(testInputs["NormalGoscanqlTaggedStruct"]).
+			inputValueKey: "NormalSQLTaggedStruct",
+			expected: referenceField(reflect.ValueOf(testInputs["NormalSQLTaggedStruct"]).
 				FieldByName("Foo")),
 		},
 		{
@@ -122,8 +122,8 @@ func Test_getRootValue(t *testing.T) {
 }
 
 type arbitraryTestStruct struct {
-	Foo  string `goscanql:"foo"`
-	Bars []int  `goscanql:"bars"`
+	Foo  string `sql:"foo"`
+	Bars []int  `sql:"bars"`
 }
 
 func generateTestFields() *fields {

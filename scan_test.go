@@ -45,7 +45,7 @@ func (c *TestUserCharacteristics) Scan(b interface{}) error {
 	return nil
 }
 
-func (c *TestUserCharacteristics) GetID() []byte {
+func (c *TestUserCharacteristics) ID() []byte {
 	return []byte(strings.Join(*c, ","))
 }
 

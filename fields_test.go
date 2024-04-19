@@ -12,15 +12,15 @@ func referenceField[T any](field T) *T {
 }
 
 type exampleScanner struct {
-	ID string
+	id string
 }
 
 func (e exampleScanner) Scan(_ interface{}) error {
 	return nil
 }
 
-func (e exampleScanner) GetID() []byte {
-	return []byte(e.ID)
+func (e exampleScanner) ID() []byte {
+	return []byte(e.id)
 }
 
 func TestInitialiseFields(t *testing.T) {
@@ -903,7 +903,7 @@ func TestIsMatch(t *testing.T) {
 				},
 				scannerReferences: map[string]Scanner{
 					"scanner": &exampleScanner{
-						ID: "123456789",
+						id: "123456789",
 					},
 				},
 				orderedOneToOneNames: []string{
@@ -932,7 +932,7 @@ func TestIsMatch(t *testing.T) {
 				},
 				scannerReferences: map[string]Scanner{
 					"scanner": &exampleScanner{
-						ID: "123456789",
+						id: "123456789",
 					},
 				},
 				orderedOneToOneNames: []string{
@@ -1031,7 +1031,7 @@ func TestIsMatch(t *testing.T) {
 				},
 				scannerReferences: map[string]Scanner{
 					"scanner": &exampleScanner{
-						ID: "123456789",
+						id: "123456789",
 					},
 				},
 				orderedOneToOneNames: []string{
@@ -1063,7 +1063,7 @@ func TestIsMatch(t *testing.T) {
 				},
 				scannerReferences: map[string]Scanner{
 					"scanner": &exampleScanner{
-						ID: "987654321",
+						id: "987654321",
 					},
 				},
 				oneToOnes: map[string]*fields{

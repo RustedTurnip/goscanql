@@ -259,7 +259,7 @@ func (f *fields) getBytePrint(prefix string) []byte {
 
 	for _, key := range f.orderedScannerNames {
 		value := f.scannerReferences[key]
-		strValue := fmt.Sprintf("{%s:%s}", buildReferenceName(prefix, key), value.GetID())
+		strValue := fmt.Sprintf("{%s:%s}", buildReferenceName(prefix, key), value.ID())
 		print = append(print, []byte(strValue)...)
 	}
 

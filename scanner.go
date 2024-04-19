@@ -16,11 +16,11 @@ import (
 type Scanner interface {
 	sql.Scanner
 
-	// GetID ia used to identify a value's uniqueness compared to other values of
+	// ID ia used to identify a value's uniqueness compared to other values of
 	// the same type during a scan. This can be returned as nil, but should
 	// otherwise consistently return a value that uniquely represents the types
 	// value.
-	GetID() []byte
+	ID() []byte
 }
 
 // implementsScanner evaluates the provided type and returns true if it implements
@@ -54,7 +54,7 @@ func (bs *ByteSlice) Scan(value interface{}) error {
 	return nil
 }
 
-func (bs *ByteSlice) GetID() []byte {
+func (bs *ByteSlice) ID() []byte {
 	return *bs
 }
 
@@ -82,7 +82,7 @@ func (ns *NullString) Scan(value interface{}) error {
 	return nil
 }
 
-func (ns *NullString) GetID() []byte {
+func (ns *NullString) ID() []byte {
 	if !ns.Valid {
 		return nil
 	}
@@ -114,7 +114,7 @@ func (ni *NullInt64) Scan(value interface{}) error {
 	return nil
 }
 
-func (ni *NullInt64) GetID() []byte {
+func (ni *NullInt64) ID() []byte {
 	if !ni.Valid {
 		return nil
 	}
@@ -146,7 +146,7 @@ func (ni *NullInt32) Scan(value interface{}) error {
 	return nil
 }
 
-func (ni *NullInt32) GetID() []byte {
+func (ni *NullInt32) ID() []byte {
 	if !ni.Valid {
 		return nil
 	}
@@ -178,7 +178,7 @@ func (ni *NullInt16) Scan(value interface{}) error {
 	return nil
 }
 
-func (ni *NullInt16) GetID() []byte {
+func (ni *NullInt16) ID() []byte {
 	if !ni.Valid {
 		return nil
 	}
@@ -210,7 +210,7 @@ func (ni *NullByte) Scan(value interface{}) error {
 	return nil
 }
 
-func (ni *NullByte) GetID() []byte {
+func (ni *NullByte) ID() []byte {
 	if !ni.Valid {
 		return nil
 	}
@@ -242,7 +242,7 @@ func (ni *NullFloat64) Scan(value interface{}) error {
 	return nil
 }
 
-func (ni *NullFloat64) GetID() []byte {
+func (ni *NullFloat64) ID() []byte {
 	if !ni.Valid {
 		return nil
 	}
@@ -274,7 +274,7 @@ func (ni *NullBool) Scan(value interface{}) error {
 	return nil
 }
 
-func (ni *NullBool) GetID() []byte {
+func (ni *NullBool) ID() []byte {
 	if !ni.Valid {
 		return nil
 	}
@@ -306,7 +306,7 @@ func (ni *NullTime) Scan(value interface{}) error {
 	return nil
 }
 
-func (ni *NullTime) GetID() []byte {
+func (ni *NullTime) ID() []byte {
 	if !ni.Valid {
 		return nil
 	}

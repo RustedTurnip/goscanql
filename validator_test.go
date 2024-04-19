@@ -71,7 +71,7 @@ func (a arrayScanner) Scan(_ interface{}) error {
 	return nil
 }
 
-func (m arrayScanner) GetID() []byte {
+func (m arrayScanner) ID() []byte {
 	return nil
 }
 
@@ -160,7 +160,7 @@ func (m mapScanner) Scan(_ interface{}) error {
 	return nil
 }
 
-func (m mapScanner) GetID() []byte {
+func (m mapScanner) ID() []byte {
 	return nil
 }
 
@@ -254,7 +254,7 @@ func (m multidimensionalSliceScanner) Scan(_ interface{}) error {
 	return nil
 }
 
-func (m multidimensionalSliceScanner) GetID() []byte {
+func (m multidimensionalSliceScanner) ID() []byte {
 	return nil
 }
 
@@ -342,7 +342,7 @@ func (f funcScanner) Scan(_ interface{}) error {
 	return nil
 }
 
-func (f funcScanner) GetID() []byte {
+func (f funcScanner) ID() []byte {
 	return nil
 }
 
@@ -441,7 +441,7 @@ func (c chanScanner) Scan(_ interface{}) error {
 	return nil
 }
 
-func (c chanScanner) GetID() []byte {
+func (c chanScanner) ID() []byte {
 	return nil
 }
 

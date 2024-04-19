@@ -27,7 +27,6 @@ func init() {
 }
 
 func main() {
-
 	flag.Parse()
 
 	db, err := sql.Open("postgres",
